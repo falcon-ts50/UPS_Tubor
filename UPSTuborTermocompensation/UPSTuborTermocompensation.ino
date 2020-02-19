@@ -75,32 +75,9 @@ void setup() {
 
 void loop() {
 
-
    int averageTemperature = getMovingAverageTen(arrayTemp);
    int outputSignal = outputLevel(averageTemperature);
-
-   
-
-  Serial.print("Output signal: ");
-  Serial.println(outputSignal);
-  
-  Serial.print("Выходной сигнал в миллиВольтах:");
-  Serial.println(outputSignal*accuracyOutput);
-  Serial.print("Temperature in 10 bit: ");
-  Serial.println(averageTemperature);
-  double tempDeg = (averageTemperature*1650.0/1023.0-500.0)/10.0;
-  Serial.print("Temperature in grad C: ");
-  Serial.println(tempDeg);
-
-  
-  /*
-  for(int i = 0 ; i < 10 ; i ++) {
-  Serial.print("элемент массива: ");
-  Serial.println(i);
-  Serial.println(arrayTemp[i]);
-  }
-  */
-  Serial.println(" ");
+   displayingDataTemp (); 
   
   analogWrite (OUTPUT_SIGNAL, outputSignal);
   
@@ -143,4 +120,28 @@ int getMovingAverageTen (int arrayTemp[10]) {
    }
   
   return sum/10;
+}
+
+void displayingDataTemp () {
+  
+  Serial.print("Output signal: ");
+  Serial.println(outputSignal);
+  
+  Serial.print("Выходной сигнал в миллиВольтах:");
+  Serial.println(outputSignal*accuracyOutput);
+  Serial.print("Temperature in 10 bit: ");
+  Serial.println(averageTemperature);
+  double tempDeg = (averageTemperature*1650.0/1023.0-500.0)/10.0;
+  Serial.print("Temperature in grad C: ");
+  Serial.println(tempDeg);
+
+  
+  /*
+  for(int i = 0 ; i < 10 ; i ++) {
+  Serial.print("элемент массива: ");
+  Serial.println(i);
+  Serial.println(arrayTemp[i]);
+  }
+  */
+  Serial.println(" ");
 }
