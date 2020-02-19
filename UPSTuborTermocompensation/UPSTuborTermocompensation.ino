@@ -72,24 +72,14 @@ void setup() {
    Serial.begin(9600);
 }
 
+
 void loop() {
 
-  int tempLevel = analogRead(INPUT_TEMP);
- 
 
-  for(int j = 0; j < 9; j++){
-    arrayTemp[j] = arrayTemp[j+1];
-  }
-
-  arrayTemp[9] = analogRead(INPUT_TEMP);
-
-  int sum = 0;
-  for(int i = 0; i <10 ; i++){
-    sum += arrayTemp[i];
-   }
-   int averageTemperature = sum/10;
-
+   int averageTemperature = getMovingAverageTen(arrayTemp);
    int outputSignal = outputLevel(averageTemperature);
+
+   
 
   Serial.print("Output signal: ");
   Serial.println(outputSignal);
@@ -137,4 +127,20 @@ int outputLevel(int tempLevel){
   }
   return outputSignal;
   
+}
+
+int getMovingAverageTen (int arrayTemp[10]) {
+
+  for(byte j = 0; j < 9; j++){
+    arrayTemp[j] = arrayTemp[j+1];
+  }
+
+  arrayTemp[9] = analogRead(INPUT_TEMP);
+
+  int sum = 0;
+  for(byte i = 0; i < 10 ; i++){
+    sum += arrayTemp[i];
+   }
+  
+  return sum/10;
 }
