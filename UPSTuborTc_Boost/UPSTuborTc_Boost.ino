@@ -18,14 +18,21 @@ double accuracyOutput = 3.223;
 
 //Температурно-вольтовая характеристика аккумулятора Тубор
 
+//Режим Float
 // задайте минимальную температуру в градусах Цельсия, ниже которой напряжение заряда не изменяется
-int minimalTemperature = 0;
+int minTempFloatDeg = 0;
 //задайте первую точку в градусах Цельсия, при которой не изменяется напряжение
-int tempFirstMiddlePoint = 15;
+int tempFirstMidPointFloat = 15;
 //Задайте вторую точку при которой температура не изменяется
-int tempSecondMiddlePoint = 35;
+int tempSecondMidFloatDeg = 35;
 //Задайте максимальную температуру в градусах Цельсия, после которой напряжение заряда не изменяется
-int maximumTemperature = 50; 
+int maxTempFloatDeg = 50; 
+
+//Режим Boost
+// задайте минимальную температуру в градусах Цельсия, ниже которой напряжение заряда не изменяется
+int minTempBoostDeg = 30;
+// задайте максимальную температуру, после которой происходит переход к графику Float
+int maxTempBoostDeg = 45;
 
 //задайте максимальное значение выходного напряжения в милливольтах!!
 int outputMaximum= 2660;
@@ -53,22 +60,29 @@ int switchBoostTcThresholdValue = nominalCurrentADC/2;
 
 //Вычисляем температуры для 10-битного АЦП
 
-//Вычисление минимальной температуры для 10-битного АЦП
-int minTempAtADC = (millivoltAtZeroDegrees + minimalTemperature*changingMillivoltAtOneDegrees)/accuracyInput;
+//Вычисление минимальной температуры графика Float для 10-битного АЦП
+int minTempFloatADC = (millivoltAtZeroDegrees + minTempFloatDeg*changingMillivoltAtOneDegrees)/accuracyInput;
 // вычисляем первую среднюю точку для 10-битного АЦП
-int tempFirstPointAtADC = (millivoltAtZeroDegrees + tempFirstMiddlePoint*changingMillivoltAtOneDegrees)/accuracyInput;
+int tempFirstPointFloatADC = (millivoltAtZeroDegrees + tempFirstMidPointFloat*changingMillivoltAtOneDegrees)/accuracyInput;
 //вычисляем вторую среднюю точку для 10-битного АЦП
-int tempSecondPointAtADC = (millivoltAtZeroDegrees + tempSecondMiddlePoint*changingMillivoltAtOneDegrees)/accuracyInput;
+int tempSecondPointFloatADC = (millivoltAtZeroDegrees + tempSecondMidFloatDeg*changingMillivoltAtOneDegrees)/accuracyInput;
 //вычисляем максимальну температуру для 10-битного АЦП
-int maxTempAtADC= (millivoltAtZeroDegrees + maximumTemperature*changingMillivoltAtOneDegrees)/accuracyInput;
+int maxTempFloatADC= (millivoltAtZeroDegrees + maxTempFloatDeg*changingMillivoltAtOneDegrees)/accuracyInput;
+
+//Вычисление минимальной температуры графика Boost для 10-битного АЦП
+int minTempBoostADC = (millivoltAtZeroDegrees + minTempBoostDeg*changingMillivoltAtOneDegrees)/accuracyInput;
+//Вычисление максимальной температуры графика Boost после которого происходит переход на Float для 10 битного АЦП
+int maxTempBoostADC = (millivoltAtZeroDegrees + maxTempBoostDeg*changingMillivoltAtOneDegrees)/accuracyInput;
 
 //Вычисляем значения выходного напряжения управления для 10 битного ЦАП
 
 //вычисляем значение выходного напряжения для 10-битного ЦАП, увеличиваем на единицу, т.к. в данной версии для Тубор это необходимо
 //из-за грубого округления при отбрасывании десятых долей
 int outputMaxDAC = outputMaximum/accuracyOutput + 1;
-//вычисляем значение выходного напряжение средних точек для 10-битного ЦАП
+//вычисляем значение выходного напряжение средних точек Float для 10-битного ЦАП
 int outputMidFloatDAC = outputMiddleFloat/accuracyOutput;
+//вычисляем значение выходно напряжения макисмальной точки для Boost, но в данном случае оно равно значению средних точек Float
+int outputMaxBoostDAC = outputMidFloatDAC;
 //вычисляем значение выходного напряжения при максимальной температуре для 10-битного ЦАП
 int outputMinDAC = outputMinimum/accuracyOutput;
 
@@ -107,17 +121,19 @@ void loop() {
   averageTemperature = getMovingAverageTen(arrayTemp);
   int valueOfCurrent = analogRead(INPUT_SHUNT);
   if(valueOfCurrent < switchBoostTcThresholdValue){
-    if(outputSignal > outputTc(averageTemperature) + 10){
-      
-    }
-    else outputSignal = outputTc(averageTemperature);
+    outputSignal = outputFloat(averageTemperature);
   }
   else {
-    if(outputSignal < outputBoost() - 10) {
-      
+    if(outputSignal < outputBoost(averageTemperature) - 10) {
+      int numberOfSteps = (outputBoost(averageTemperature)-outputSignal)/3;
+      for(int i=0; i<numberOfSteps; i++) {
+        outputSignal += 3;
+        analogWrite (OUTPUT_SIGNAL, outputSignal);
+        delay(1000);      
+      }
     }
     else 
-    outputSignal = outputBoost();
+    outputSignal = outputBoost(averageTemperature);
   }
   
   displayingDataTemp (); 
@@ -128,29 +144,38 @@ void loop() {
 
 }
 
-int outputTc(int tempLevel){
-   int outputSignal;
-   if(tempLevel <= minTempAtADC){
-    outputSignal = outputMaxDAC;
+int outputFloat(int tempLevel){
+   int outputSignalFloat;
+   if(tempLevel <= minTempFloatADC){
+    outputSignalFloat = outputMaxDAC;
   } 
-  else if (tempLevel > minTempAtADC && tempLevel <= tempFirstPointAtADC){
-    outputSignal = map(tempLevel, minTempAtADC, tempFirstPointAtADC, outputMaxDAC, outputMidFloatDAC); 
+  else if (tempLevel > minTempFloatADC && tempLevel <= tempFirstPointFloatADC){
+    outputSignalFloat = map(tempLevel, minTempFloatADC, tempFirstPointFloatADC, outputMaxDAC, outputMidFloatDAC); 
   }
-  else if (tempLevel > tempFirstPointAtADC && tempLevel <= tempSecondPointAtADC) {
-    outputSignal = outputMidFloatDAC;
+  else if (tempLevel > tempFirstPointFloatADC && tempLevel <= tempSecondPointFloatADC) {
+    outputSignalFloat = outputMidFloatDAC;
   }
-  else if (tempLevel > tempSecondPointAtADC && tempLevel <= maxTempAtADC){
-    outputSignal = map(tempLevel, tempSecondPointAtADC, maxTempAtADC, outputMidFloatDAC, outputMinDAC);
+  else if (tempLevel > tempSecondPointFloatADC && tempLevel <= maxTempFloatADC){
+    outputSignalFloat = map(tempLevel, tempSecondPointFloatADC, maxTempFloatADC, outputMidFloatDAC, outputMinDAC);
   }
-  else if (tempLevel > maxTempAtADC){
-    outputSignal = outputMinDAC;
+  else if (tempLevel > maxTempFloatADC){
+    outputSignalFloat = outputMinDAC;
   }
-  return outputSignal;
+  return outputSignalFloat;
   
 }
 
-int outputBoost(){
-  
+int outputBoost(int tempLevel){
+   int outputSignalBoost;
+   if(tempLevel <= minTempBoostADC) {
+    outputSignalBoost = outputMaxDAC;
+   }
+   else if(tempLevel > minTempBoostADC && tempLevel <= maxTempBoostADC) {
+     outputSignalBoost = map (tempLevel, minTempBoostADC, maxTempBoostADC, outputMaxDAC, outputMaxBoostDAC);    
+   }
+   else outputSignalBoost = outputFloat (tempLevel);
+   
+   return outputSignalBoost;
 }
 
 int getMovingAverageTen (int arrayTemp[10]) {
