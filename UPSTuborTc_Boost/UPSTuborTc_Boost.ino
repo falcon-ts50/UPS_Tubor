@@ -4,7 +4,7 @@
 
 //Характеристика датчика температуры ТМР-36
 int millivoltAtZeroDegrees = 500;
-int changingMillivoltAtOneDegrees = 10;
+int changingMillivoltPerOneDegrees = 10;
 
 //Характеристика входов/выходов MKR Zero
 
@@ -61,18 +61,18 @@ int switchBoostTcThresholdValue = nominalCurrentADC/2;
 //Вычисляем температуры для 10-битного АЦП
 
 //Вычисление минимальной температуры графика Float для 10-битного АЦП
-int minTempFloatADC = (millivoltAtZeroDegrees + minTempFloatDeg*changingMillivoltAtOneDegrees)/accuracyInput;
+int minTempFloatADC = (millivoltAtZeroDegrees + minTempFloatDeg*changingMillivoltPerOneDegrees)/accuracyInput;
 // вычисляем первую среднюю точку для 10-битного АЦП
-int tempFirstPointFloatADC = (millivoltAtZeroDegrees + tempFirstMidPointFloat*changingMillivoltAtOneDegrees)/accuracyInput;
+int tempFirstPointFloatADC = (millivoltAtZeroDegrees + tempFirstMidPointFloat*changingMillivoltPerOneDegrees)/accuracyInput;
 //вычисляем вторую среднюю точку для 10-битного АЦП
-int tempSecondPointFloatADC = (millivoltAtZeroDegrees + tempSecondMidFloatDeg*changingMillivoltAtOneDegrees)/accuracyInput;
+int tempSecondPointFloatADC = (millivoltAtZeroDegrees + tempSecondMidFloatDeg*changingMillivoltPerOneDegrees)/accuracyInput;
 //вычисляем максимальну температуру для 10-битного АЦП
-int maxTempFloatADC= (millivoltAtZeroDegrees + maxTempFloatDeg*changingMillivoltAtOneDegrees)/accuracyInput;
+int maxTempFloatADC= (millivoltAtZeroDegrees + maxTempFloatDeg*changingMillivoltPerOneDegrees)/accuracyInput;
 
 //Вычисление минимальной температуры графика Boost для 10-битного АЦП
-int minTempBoostADC = (millivoltAtZeroDegrees + minTempBoostDeg*changingMillivoltAtOneDegrees)/accuracyInput;
+int minTempBoostADC = (millivoltAtZeroDegrees + minTempBoostDeg*changingMillivoltPerOneDegrees)/accuracyInput;
 //Вычисление максимальной температуры графика Boost после которого происходит переход на Float для 10 битного АЦП
-int maxTempBoostADC = (millivoltAtZeroDegrees + maxTempBoostDeg*changingMillivoltAtOneDegrees)/accuracyInput;
+int maxTempBoostADC = (millivoltAtZeroDegrees + maxTempBoostDeg*changingMillivoltPerOneDegrees)/accuracyInput;
 
 //Вычисляем значения выходного напряжения управления для 10 битного ЦАП
 
