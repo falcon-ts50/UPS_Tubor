@@ -103,13 +103,15 @@ void setup() {
   analogReference(AR_INTERNAL1V65);
   analogWriteResolution(10);
   analogReadResolution(10);
-  //first initialisation for array for Moving average
   
+  // инициализация массива для скользящей средней
   for (int i=0; i<10; i++)
   {
   arrayTemp[i] = analogRead(INPUT_TEMP);
   delay(100);
   }
+
+  // делаем первоначальную иницаиализацию выходного сигнала
   outputSignal = outputMidFloatDAC;
    Serial.begin(9600);
 }
@@ -117,13 +119,30 @@ void setup() {
 
 void loop() {
 
-  
+ //присваиваем переменной температуры значение скользящей средней, взятой из функции
   averageTemperature = getMovingAverageTen(arrayTemp);
+
+  // получаем данные по напряжению от шунта
   int valueOfCurrent = analogRead(INPUT_SHUNT);
+
+  //условие: если величина тока на шунте меньше пороговой - переход к графику Флоат, если больше - делаем переход к Буст
   if(valueOfCurrent < switchBoostTcThresholdValue){
+    
+    if(outputSignal > outputFloat(averageTemperature) + 10){
+      int numberOfStepsFB = (outputSignal - outputFloat(averageTemperature))/3;
+      for(int i = 0; i < numberOfStepsFB; i++){
+        outputSignal -= 3;
+        analogWrite (OUTPUT_SIGNAL, outputSignal);
+        delay(1000);  
+      }
+    }
+    else
     outputSignal = outputFloat(averageTemperature);
+   
   }
+  
   else {
+    
     if(outputSignal < outputBoost(averageTemperature) - 10) {
       int numberOfSteps = (outputBoost(averageTemperature)-outputSignal)/3;
       for(int i=0; i<numberOfSteps; i++) {
@@ -143,6 +162,8 @@ void loop() {
   delay(1000);
 
 }
+
+//вычисление выходного сигнала по графику Float
 
 int outputFloat(int tempLevel){
    int outputSignalFloat;
@@ -165,6 +186,8 @@ int outputFloat(int tempLevel){
   
 }
 
+//вычисление выходного сигнала по графику Boost
+
 int outputBoost(int tempLevel){
    int outputSignalBoost;
    if(tempLevel <= minTempBoostADC) {
@@ -178,8 +201,9 @@ int outputBoost(int tempLevel){
    return outputSignalBoost;
 }
 
-int getMovingAverageTen (int arrayTemp[10]) {
+//вычисление скользящей средней на 10 точек
 
+int getMovingAverageTen (int arrayTemp[10]) {
   for(byte j = 0; j < 9; j++){
     arrayTemp[j] = arrayTemp[j+1];
   }
@@ -193,6 +217,8 @@ int getMovingAverageTen (int arrayTemp[10]) {
   
   return sum/10;
 }
+
+//функция показа данных в мониторе порта
 
 void displayingDataTemp () {
   
