@@ -34,29 +34,61 @@ int minTempBoostDeg = 30;
 // задайте максимальную температуру, после которой происходит переход к графику Float
 int maxTempBoostDeg = 45;
 
-//задайте максимальное значение выходного напряжения в милливольтах!!
+//задайте максимальное значение выходного напряжения в милливольтах для Boost и Float
 int outputMaximum= 2660;
-// задайте уровень напряжения средних температурных точек в милливольтах
+// задайте уровень напряжения средних температурных точек в милливольтах для режима Float
 int outputMiddleFloat = 2550;
-//задайте значение минимального выходного напряжения в милливольтах
-int  outputMinimum = 2468;
+//задайте значение минимального выходного напряжения в милливольтах для режима Float
+int outputFloatMinimum = 2468;
+//задайте значение минимального выходного напряжения в милливольтах для режима Boost
+int outputBoostMinimum = 2550;
+
+//задайте коэффициент преобразования для базовой шкалы "мВ на элемент" для получения калиброванного напряжения
+
+double coefficientOfCalibration = 1.108;
 
 //Характеристика шунта
 
-//Задайте номинальное значение напряжения шунта для тока Iном в мВ
+//Задайте максимальное напряжение шунта
+int maxVoltShunt = 60;
 
-double valueOfNominalCurrentOnVoltage = 30.0;
+//Задайте максимальный ток шунта
+int maxCurrentShunt = 400;
 
+//Введите паспортную ёмкость для марки испольуемых аккумуляторов
+int capacitanceOfBattery = 75;
 
-//Вычисляемые значения
+//Укажите число параллельных цепочек из аккумуляторов
+int numberBattery = 4;
 
-//Вычисляем значение показаний шунта для 10-битного АЦП, пока не округляя
+//Введите значение коэффициента передачи аналогового предусилителя
+int coeffAnalogueAmplifier = 25;
 
-double nominalCurrentADC = valueOfNominalCurrentOnVoltage/accuracyInput;
+//Задайте ток запряда
+double chargingCurrent = 2.8;
 
-//Вычисляем пороговое значение, при котором происходит переключения с функции boost на Термокомпенсацию
+//Задайте предельный ток заряда
+double maxChargCurrent = 3.5;
 
-int switchBoostTcThresholdValue = nominalCurrentADC/2;
+//Задайте порог применения ускоренного заряда
+double thresholdForBoost = 0.9;
+
+//Задайте условие окончания ускоренного заряда
+double thresholdBoostEnding = 0.25;
+
+//ВЫЧИСЛЯЕМЫЕ ЗНАЧЕНИЯ
+
+//Напряжение соответствующее номинальному току заряда мВ
+
+double valueOfNominalCurrentOnVoltage = 0.1*capacitanceOfBattery*numberBattery*coeffAnalogueAmplifier*maxVoltShunt/maxCurrentShunt;
+
+//Вычисляем значение при котором происходит начало ускоренного заряда (переключение с Float на Boost)
+
+int switchFloatToBoost = valueOfNominalCurrentOnVoltage*thresholdForBoost;
+
+//Вычисляем пороговое значение, при котором происходит переключения с функции Boost на Float (окончание ускоренного заряда)
+
+int switchBoostToFloat = valueOfNominalCurrentOnVoltage*thresholdBoostEnding;
 
 //Вычисляем температуры для 10-битного АЦП
 
@@ -84,7 +116,7 @@ int outputMidFloatDAC = outputMiddleFloat/accuracyOutput;
 //вычисляем значение выходно напряжения макисмальной точки для Boost, но в данном случае оно равно значению средних точек Float
 int outputMaxBoostDAC = outputMidFloatDAC;
 //вычисляем значение выходного напряжения при максимальной температуре для 10-битного ЦАП
-int outputMinDAC = outputMinimum/accuracyOutput;
+int outputMinDAC = outputFloatMinimum/accuracyOutput;
 
 //Перменные
 
@@ -126,7 +158,7 @@ void loop() {
   int valueOfCurrent = analogRead(INPUT_SHUNT);
 
   //условие: если величина тока на шунте меньше пороговой - переход к графику Флоат, если больше - делаем переход к Буст
-  if(valueOfCurrent < switchBoostTcThresholdValue){
+  if(valueOfCurrent < switchBoostToFloat){
     
     if(outputSignal > outputFloat(averageTemperature) + 10){
       int numberOfStepsFB = (outputSignal - outputFloat(averageTemperature))/3;
@@ -143,7 +175,7 @@ void loop() {
   
   else {
     
-    if(outputSignal < outputBoost(averageTemperature) - 10) {
+    if(outputSignal < outputBoost(averageTemperature) - 10 && valueOfCurrent > switchFloatToBoost) {
       int numberOfSteps = (outputBoost(averageTemperature)-outputSignal)/3;
       for(int i=0; i<numberOfSteps; i++) {
         outputSignal += 3;
@@ -151,7 +183,9 @@ void loop() {
         delay(1000);      
       }
     }
-    else 
+    else if(outputSignal < outputBoost(averageTemperature) - 10 && valueOfCurrent <= switchFloatToBoost)
+    outputSignal = outputFloat(averageTemperature);
+    else
     outputSignal = outputBoost(averageTemperature);
   }
   
