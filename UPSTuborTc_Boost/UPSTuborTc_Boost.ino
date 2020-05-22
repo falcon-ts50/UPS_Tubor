@@ -1,3 +1,6 @@
+// Подключаем библиотеку реального времени
+#include <RTC.h>
+//создаём макроопределения для используемых пинов
 #define OUTPUT_SIGNAL     A0
 #define INPUT_TEMP        A2
 #define INPUT_SHUNT       A4
@@ -5,10 +8,12 @@
 //Характеристика датчика температуры ТМР-36
 int millivoltAtZeroDegrees = 500;
 int changingMillivoltPerOneDegrees = 10;
+//точка калибровки. Для датчика ТМР-36 задаём как минус 40 Цельсиев
+int tempCalibrationDeg = -40;
 
 //Характеристика входов/выходов MKR Zero
 
-//точность входного сигнала, мВ, при 10 битном АЦП
+//точность входного сигнала, мВ, при 10 битном АЦП при analogReference(AR_INTERNAL1V65);
 // 1650 мВ/ 1024 = 1,611
 double accuracyInput = 1.611;
 
@@ -76,11 +81,24 @@ double thresholdForBoost = 0.9;
 //Задайте условие окончания ускоренного заряда
 double thresholdBoostEnding = 0.25;
 
+//Задайте максимальное время работы в режиме boost в часах
+byte timeInBoost = 8;
+
+//Задайте время задержки между повторным включением режима boost в минутах
+byte delayBoost = 15;
+
+/******************************************************************************************************************************************************************/
 //ВЫЧИСЛЯЕМЫЕ ЗНАЧЕНИЯ
 
 //Напряжение соответствующее номинальному току заряда мВ
 
 double valueOfNominalCurrentOnVoltage = 0.1*capacitanceOfBattery*numberBattery*coeffAnalogueAmplifier*maxVoltShunt/maxCurrentShunt;
+
+//Напряжение, соответствующее выбранному току заряда
+int voltageOfCharge = valueOfNominalCurrentOnVoltage*chargingCurrent;
+
+//Напряжение, соответствующее предельному току заряда
+int limitVoltageOfCharge = valueOfNominalCurrentOnVoltage*maxChargCurrent;
 
 //Вычисляем значение при котором происходит начало ускоренного заряда (переключение с Float на Boost)
 
@@ -118,6 +136,9 @@ int outputMaxBoostDAC = outputMidFloatDAC;
 //вычисляем значение выходного напряжения при максимальной температуре для 10-битного ЦАП
 int outputMinDAC = outputFloatMinimum/accuracyOutput;
 
+//вычисляем точку калибровки для 10-битного АЦП
+int tempCalibrationADC = (millivoltAtZeroDegrees + tempCalibrationDeg*changingMillivoltPerOneDegrees)/accuracyInput;
+
 //Перменные
 
 //Созадём массив на 10 точек для скользящей средней по температуре без инициализации
@@ -128,11 +149,33 @@ int outputSignal;
 int averageTemperature;
 int shuntCurrent;
 
+//создаём объект реального времени
+RTCZero rtc;
+
+/* Change these values to set the current initial time */
+const byte seconds = 0;
+const byte minutes = 0;
+const byte hours = 0;
+
+/* Change these values to set the current initial date */
+const byte day = 1;
+const byte month = 6;
+const byte year = 20;
+
+/****************************************************************************************************************************************************************/
+
 void setup() {
+
+  //запускаем таймер реального времени
+  rtc.begin();
+  rtc.setTime(hours, minutes, seconds);
+  rtc.setDate(day, month, year);
   // put your setup code here, to run once:
   pinMode(INPUT_TEMP, INPUT);
   pinMode(INPUT_SHUNT, INPUT);
+  //Устанавливаем разрешение для работы с входным сигналом
   analogReference(AR_INTERNAL1V65);
+  
   analogWriteResolution(10);
   analogReadResolution(10);
   
@@ -148,8 +191,11 @@ void setup() {
    Serial.begin(9600);
 }
 
+/*************************************************************************************************************************************************************************************/
 
 void loop() {
+
+  
 
  //присваиваем переменной температуры значение скользящей средней, взятой из функции
   averageTemperature = getMovingAverageTen(arrayTemp);
@@ -157,6 +203,10 @@ void loop() {
   // получаем данные по напряжению от шунта
   int valueOfCurrent = analogRead(INPUT_SHUNT);
 
+if(averageTemperature <= tempCalibrationADC) {
+  outputSignal = outputMidFloatDAC;
+}
+else {
   //условие: если величина тока на шунте меньше пороговой - переход к графику Флоат, если больше - делаем переход к Буст
   if(valueOfCurrent < switchBoostToFloat){
     
@@ -188,6 +238,8 @@ void loop() {
     else
     outputSignal = outputBoost(averageTemperature);
   }
+
+}
   
   displayingDataTemp (); 
   
@@ -196,6 +248,7 @@ void loop() {
   delay(1000);
 
 }
+/*********************************************************************************************************************************************************************************/
 
 //вычисление выходного сигнала по графику Float
 
