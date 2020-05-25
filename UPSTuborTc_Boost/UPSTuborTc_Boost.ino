@@ -203,13 +203,15 @@ void loop() {
   // получаем данные по напряжению от шунта
   int valueOfCurrent = analogRead(INPUT_SHUNT);
 
+//условие калибровки (если температура ниже минус 40, то включаем режим выходного сигнала, равный среднему значению при Флоат)
 if(averageTemperature <= tempCalibrationADC) {
   outputSignal = outputMidFloatDAC;
 }
 else {
-  //условие: если величина тока на шунте меньше пороговой - переход к графику Флоат, если больше - делаем переход к Буст
+  
+  //Если ток на шунте меньше, чем порог перехода от Буст к Флоат
   if(valueOfCurrent < switchBoostToFloat){
-    
+    //если прошлый сигнал был Буст, делаем переход от Буст к Флоат.
     if(outputSignal > outputFloat(averageTemperature) + 10){
       int numberOfStepsFB = (outputSignal - outputFloat(averageTemperature))/3;
       for(int i = 0; i < numberOfStepsFB; i++){
@@ -218,13 +220,14 @@ else {
         delay(1000);  
       }
     }
+    //иначе присваиваем выходному сигналу новое значение Флоат
     else
     outputSignal = outputFloat(averageTemperature);
    
   }
   
   else {
-    
+    //проверяем условие: если выходной сигнал в прошлый раз был Float и одновременно значение тока было выше чем порог перехода от Флоат к Буст, то делаем переход
     if(outputSignal < outputBoost(averageTemperature) - 10 && valueOfCurrent > switchFloatToBoost) {
       int numberOfSteps = (outputBoost(averageTemperature)-outputSignal)/3;
       for(int i=0; i<numberOfSteps; i++) {
@@ -233,6 +236,7 @@ else {
         delay(1000);      
       }
     }
+    //иначе если проверяем условие: если в прошлый раз был Флоат и текущее значение тока меньше, чем порог перехода от Флоата к Буст, то приравниваем выходной сигнал новому значению Флоат.
     else if(outputSignal < outputBoost(averageTemperature) - 10 && valueOfCurrent <= switchFloatToBoost)
     outputSignal = outputFloat(averageTemperature);
     else
