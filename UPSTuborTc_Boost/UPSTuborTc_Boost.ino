@@ -1,5 +1,3 @@
-// Подключаем библиотеку реального времени
-#include <RTC.h>
 //создаём макроопределения для используемых пинов
 #define OUTPUT_SIGNAL     A0
 #define INPUT_TEMP        A2
@@ -139,7 +137,14 @@ int outputMinDAC = outputFloatMinimum/accuracyOutput;
 //вычисляем точку калибровки для 10-битного АЦП
 int tempCalibrationADC = (millivoltAtZeroDegrees + tempCalibrationDeg*changingMillivoltPerOneDegrees)/accuracyInput;
 
-//Перменные
+//Переменные времени
+
+//время в миллисекундах в boost
+unsigned long timeInBoostMillis = timeInBoost*60*60*1000;
+//время в миллисекундах задержка между boost и float
+unsigned long delayBoostMillis = delayBoost*60*1000;
+
+//Перменные, расчитываемые при старте программы
 
 //Созадём массив на 10 точек для скользящей средней по температуре без инициализации
 int arrayTemp[10];
@@ -148,28 +153,14 @@ int arrayTemp[10];
 int outputSignal;
 int averageTemperature;
 int shuntCurrent;
-
-//создаём объект реального времени
-RTCZero rtc;
-
-/* Change these values to set the current initial time */
-const byte seconds = 0;
-const byte minutes = 0;
-const byte hours = 0;
-
-/* Change these values to set the current initial date */
-const byte day = 1;
-const byte month = 6;
-const byte year = 20;
+//переменная для хранения времени работы в режиме boost и задержки на переход от float к boost
+unsigned long timerFloatBoost;
+unsigned long timerBoost;
 
 /****************************************************************************************************************************************************************/
 
 void setup() {
 
-  //запускаем таймер реального времени
-  rtc.begin();
-  rtc.setTime(hours, minutes, seconds);
-  rtc.setDate(day, month, year);
   // put your setup code here, to run once:
   pinMode(INPUT_TEMP, INPUT);
   pinMode(INPUT_SHUNT, INPUT);
@@ -195,9 +186,7 @@ void setup() {
 
 void loop() {
 
-  
-
- //присваиваем переменной температуры значение скользящей средней, взятой из функции
+  //присваиваем переменной температуры значение скользящей средней, взятой из функции
   averageTemperature = getMovingAverageTen(arrayTemp);
 
   // получаем данные по напряжению от шунта
@@ -210,37 +199,71 @@ if(averageTemperature <= tempCalibrationADC) {
 else {
   
   //Если ток на шунте меньше, чем порог перехода от Буст к Флоат
-  if(valueOfCurrent < switchBoostToFloat){
+  if(valueOfCurrent <= switchBoostToFloat){
     //если прошлый сигнал был Буст, делаем переход от Буст к Флоат.
-    if(outputSignal > outputFloat(averageTemperature) + 10){
+    if(outputSignal >= outputFloat(averageTemperature) + 10){
       int numberOfStepsFB = (outputSignal - outputFloat(averageTemperature))/3;
       for(int i = 0; i < numberOfStepsFB; i++){
         outputSignal -= 3;
         analogWrite (OUTPUT_SIGNAL, outputSignal);
         delay(1000);  
       }
+      timerFloatBoost = millis();  // присваеваем таймеру значение задержки на переход между boost и float
     }
     //иначе присваиваем выходному сигналу новое значение Флоат
     else
     outputSignal = outputFloat(averageTemperature);
    
-  }
+  }   //иначе если в прошлый раз был Флоат и текущее значение тока меньше, чем порог перехода от Флоата к Буст, то приравниваем выходной сигнал новому значению Флоат.
+    else if(outputSignal <= outputBoost(averageTemperature) - 10 && valueOfCurrent <= switchFloatToBoost)
+    outputSignal = outputFloat(averageTemperature);
   
   else {
-    //проверяем условие: если выходной сигнал в прошлый раз был Float и одновременно значение тока было выше чем порог перехода от Флоат к Буст, то делаем переход
-    if(outputSignal < outputBoost(averageTemperature) - 10 && valueOfCurrent > switchFloatToBoost) {
+    //проверяем условие: если выходной сигнал в прошлый раз был Float и значение тока выше чем порог перехода от Флоат к Буст и выдержка по времени сработала, то делаем переход
+    if(outputSignal <= outputBoost(averageTemperature) - 10 && valueOfCurrent > switchFloatToBoost && !funcTimer(timerFloatBoost, delayBoostMillis)) {
       int numberOfSteps = (outputBoost(averageTemperature)-outputSignal)/3;
       for(int i=0; i<numberOfSteps; i++) {
         outputSignal += 3;
         analogWrite (OUTPUT_SIGNAL, outputSignal);
         delay(1000);      
       }
+      timerBoost = millis(); // таймеру присваеваем значение времени работы в режиме boost
     }
-    //иначе если проверяем условие: если в прошлый раз был Флоат и текущее значение тока меньше, чем порог перехода от Флоата к Буст, то приравниваем выходной сигнал новому значению Флоат.
-    else if(outputSignal < outputBoost(averageTemperature) - 10 && valueOfCurrent <= switchFloatToBoost)
-    outputSignal = outputFloat(averageTemperature);
-    else
+    //иначе если в прошлый раз был буст и текущее значение тока больше, чем порог от Флоат к Буст, и таймер еще не вышел, то на выходе новый Буст
+    else if(outputSignal >= outputFloat(averageTemperature) + 10 && valueOfCurrent > switchFloatToBoost && funcTimer(timerBoost, timeInBoostMillis))
     outputSignal = outputBoost(averageTemperature);
+    
+    //тоже самое, но если таймер вышел, то переход во Флоат и запуск таймера задержки
+    else if(outputSignal >= outputFloat(averageTemperature) + 10 && valueOfCurrent > switchFloatToBoost && !funcTimer(timerBoost, timeInBoostMillis)){
+    int numberOfStepsFB = (outputSignal - outputFloat(averageTemperature))/3;
+      for(int i = 0; i < numberOfStepsFB; i++){
+        outputSignal -= 3;
+        analogWrite (OUTPUT_SIGNAL, outputSignal);
+        delay(1000);  
+      }
+      timerFloatBoost = millis();  // присваеваем таймеру значение задержки на переход между boost и float
+    }
+
+    //если был буст, и переключатель меньше порога Флоат к Буст и таймер не вышел, то новый буст
+    else if(outputSignal >= outputFloat(averageTemperature) + 10 && valueOfCurrent <= switchFloatToBoost && funcTimer(timerBoost, timeInBoostMillis)){
+      outputSignal = outputBoost(averageTemperature);
+    }
+
+    //если был быуст, переключатель меньше порога Флоат к Буст и таймер вышел, то переход во Флоат.
+    else if(outputSignal >= outputFloat(averageTemperature) + 10 && valueOfCurrent <= switchFloatToBoost && !funcTimer(timerBoost, timeInBoostMillis)){
+    int numberOfStepsFB = (outputSignal - outputFloat(averageTemperature))/3;
+      for(int i = 0; i < numberOfStepsFB; i++){
+        outputSignal -= 3;
+        analogWrite (OUTPUT_SIGNAL, outputSignal);
+        delay(1000);  
+      }
+      timerFloatBoost = millis();  // присваеваем таймеру значение задержки на переход между boost и float
+    }
+    
+    //иначе флоат во всех остальных случаях
+    else
+    outputSignal = outputFloat(averageTemperature);
+    
   }
 
 }
@@ -308,6 +331,16 @@ int getMovingAverageTen (int arrayTemp[10]) {
   
   return sum/10;
 }
+
+//проверка сколько времени прошло с момента старта программы, с обработкой переполнения
+
+boolean funcTimer(unsigned long timeWork, unsigned long timeLimit){
+
+  if (millis()- timeWork < timeLimit){
+    return true
+  }
+    else return false;
+  }
 
 //функция показа данных в мониторе порта
 
