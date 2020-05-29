@@ -197,77 +197,91 @@ if(averageTemperature <= tempCalibrationADC) {
   outputSignal = outputMidFloatDAC;
 }
 else {
-  
-  //Если ток на шунте меньше, чем порог перехода от Буст к Флоат
-  if(valueOfCurrent <= switchBoostToFloat){
-    //если прошлый сигнал был Буст, делаем переход от Буст к Флоат.
-    if(outputSignal >= outputFloat(averageTemperature) + 10){
-      int numberOfStepsFB = (outputSignal - outputFloat(averageTemperature))/3;
-      for(int i = 0; i < numberOfStepsFB; i++){
-        outputSignal -= 3;
-        analogWrite (OUTPUT_SIGNAL, outputSignal);
-        delay(1000);  
-      }
-      timerFloatBoost = millis();  // присваеваем таймеру значение задержки на переход между boost и float
-    }
-    //иначе присваиваем выходному сигналу новое значение Флоат
-    else
-    outputSignal = outputFloat(averageTemperature);
-   
-  }   //иначе если в прошлый раз был Флоат и текущее значение тока меньше, чем порог перехода от Флоата к Буст, то приравниваем выходной сигнал новому значению Флоат.
-    else if(outputSignal <= outputBoost(averageTemperature) - 10 && valueOfCurrent <= switchFloatToBoost)
-    outputSignal = outputFloat(averageTemperature);
-  
-  else {
-    //проверяем условие: если выходной сигнал в прошлый раз был Float и значение тока выше чем порог перехода от Флоат к Буст и выдержка по времени сработала, то делаем переход
-    if(outputSignal <= outputBoost(averageTemperature) - 10 && valueOfCurrent > switchFloatToBoost && !funcTimer(timerFloatBoost, delayBoostMillis)) {
-      int numberOfSteps = (outputBoost(averageTemperature)-outputSignal)/3;
-      for(int i=0; i<numberOfSteps; i++) {
+
+//проверяем первую ветку: ток на шунте больше порога флоат к буст
+
+  if(valueOfCurrent > switchFloatToBoost){
+    if(isLastSignalFloat()){
+      if(!isTimerWork(timerFloatBoost, delayBoostMillis)){
+        int numberOfSteps = (outputBoost(averageTemperature)-outputSignal)/3;
+        for(int i=0; i<numberOfSteps; i++) {
         outputSignal += 3;
         analogWrite (OUTPUT_SIGNAL, outputSignal);
         delay(1000);      
       }
       timerBoost = millis(); // таймеру присваеваем значение времени работы в режиме boost
+      }
+      else
+      outputSignal = outputFloat(averageTemperature);
     }
-    //иначе если в прошлый раз был буст и текущее значение тока больше, чем порог от Флоат к Буст, и таймер еще не вышел, то на выходе новый Буст
-    else if(outputSignal >= outputFloat(averageTemperature) + 10 && valueOfCurrent > switchFloatToBoost && funcTimer(timerBoost, timeInBoostMillis))
-    outputSignal = outputBoost(averageTemperature);
-    
-    //тоже самое, но если таймер вышел, то переход во Флоат и запуск таймера задержки
-    else if(outputSignal >= outputFloat(averageTemperature) + 10 && valueOfCurrent > switchFloatToBoost && !funcTimer(timerBoost, timeInBoostMillis)){
-    int numberOfStepsFB = (outputSignal - outputFloat(averageTemperature))/3;
-      for(int i = 0; i < numberOfStepsFB; i++){
+    else if(isLastSignalBoost()){
+      if(isTimerWork(timerBoost, timeInBoostMillis)){
+        outputSignal = outputBoost(averageTemperature);
+      }
+      else {
+        int numberOfStepsFB = (outputSignal - outputFloat(averageTemperature))/3;
+        for(int i = 0; i < numberOfStepsFB; i++){
         outputSignal -= 3;
         analogWrite (OUTPUT_SIGNAL, outputSignal);
         delay(1000);  
       }
-      timerFloatBoost = millis();  // присваеваем таймеру значение задержки на переход между boost и float
+      timerFloatBoost = millis(); 
+      }
     }
+    //предохранитель. Если код сглючит, переход на флоат
+    else outputSignal = outputFloat(averageTemperature);
+  }
+//проверяем вторую ветку ток на шунте между порогами от флоат к буст и от буст к флоат
 
-    //если был буст, и переключатель меньше порога Флоат к Буст и таймер не вышел, то новый буст
-    else if(outputSignal >= outputFloat(averageTemperature) + 10 && valueOfCurrent <= switchFloatToBoost && funcTimer(timerBoost, timeInBoostMillis)){
-      outputSignal = outputBoost(averageTemperature);
+  else if(valueOfCurrent > switchBoostToFloat && valueOfCurrent <= switchFloatToBoost){
+    if(isLastSignalFloat()){
+      outputSignal = outputFloat(averageTemperature);
     }
-
-    //если был быуст, переключатель меньше порога Флоат к Буст и таймер вышел, то переход во Флоат.
-    else if(outputSignal >= outputFloat(averageTemperature) + 10 && valueOfCurrent <= switchFloatToBoost && !funcTimer(timerBoost, timeInBoostMillis)){
-    int numberOfStepsFB = (outputSignal - outputFloat(averageTemperature))/3;
-      for(int i = 0; i < numberOfStepsFB; i++){
+    //если последний сигнал был буст
+    else if(isLastSignalBoost()){
+      // если таймер ещё работает, то оставляем буст
+      if(isTimerWork(timerBoost, timeInBoostMillis)){
+        outputSignal = outputBoost(averageTemperature);
+      }
+      //иначе, делаем переход от буст к флоат
+      else {
+        int numberOfStepsFB = (outputSignal - outputFloat(averageTemperature))/3;
+        for(int i = 0; i < numberOfStepsFB; i++){
         outputSignal -= 3;
         analogWrite (OUTPUT_SIGNAL, outputSignal);
         delay(1000);  
       }
-      timerFloatBoost = millis();  // присваеваем таймеру значение задержки на переход между boost и float
+      timerFloatBoost = millis(); 
+      }
     }
+    //предохранитель. Если код сглючит, переход на флоат
+    else outputSignal = outputFloat(averageTemperature);
+  }
     
-    //иначе флоат во всех остальных случаях
+  //Если ток на шунте меньше, чем порог перехода от Буст к Флоат
+  else if(valueOfCurrent <= switchBoostToFloat){
+    //если прошлый сигнал был Флоат, то оставляем Флоат
+    if(isLastSignalFloat()){
+      outputSignal = outputFloat(averageTemperature);
+    }
+  //Иначе если прошлый сиогнал был Буст, то делаем переход от Буст к Флоат.
+    else if(isLastSignalBoost()){
+      int numberOfStepsFB = (outputSignal - outputFloat(averageTemperature))/3;
+        for(int i = 0; i < numberOfStepsFB; i++){
+        outputSignal -= 3;
+        analogWrite (OUTPUT_SIGNAL, outputSignal);
+        delay(1000);  
+      }
+      timerFloatBoost = millis(); 
+    }
+    //предохранитель, иначе присваиваем выходному сигналу новое значение Флоат
     else
     outputSignal = outputFloat(averageTemperature);
-    
   }
-
+    //предохранитель, иначе присваиваем выходному сигналу новое значение Флоат
+    else
+    outputSignal = outputFloat(averageTemperature);
 }
-  
   displayingDataTemp (); 
   
   analogWrite (OUTPUT_SIGNAL, outputSignal);
@@ -334,13 +348,33 @@ int getMovingAverageTen (int arrayTemp[10]) {
 
 //проверка сколько времени прошло с момента старта программы, с обработкой переполнения
 
-boolean funcTimer(unsigned long timeWork, unsigned long timeLimit){
+boolean isTimerWork(unsigned long timeWork, unsigned long timeLimit){
 
   if (millis()- timeWork < timeLimit){
-    return true
+    return true;
   }
     else return false;
   }
+
+//проверка что последний сигнал был Float
+
+boolean isLastSignalFloat() {
+  if(outputSignal <= outputBoost(averageTemperature) - 10){
+
+    return true;
+  }
+  else return false;
+}
+
+//проверка что последний сигнал был Boost
+
+boolean isLastSignalBoost() {
+  if(outputSignal >= outputFloat(averageTemperature) + 10){
+
+    return true;
+  }
+  else return false;
+}
 
 //функция показа данных в мониторе порта
 
