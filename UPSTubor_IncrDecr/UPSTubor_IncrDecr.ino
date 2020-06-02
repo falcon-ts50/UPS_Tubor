@@ -2,6 +2,7 @@
 #define OUTPUT_SIGNAL     A0
 #define INPUT_TEMP        A2
 #define INPUT_SHUNT       A4
+#define INPUT_SUPPORT     A6
 
 //Характеристика датчика температуры ТМР-36
 int millivoltAtZeroDegrees = 500;
@@ -52,31 +53,31 @@ double coefficientOfCalibration = 1.108;
 
 //Характеристика шунта
 
-//Задайте максимальное напряжение шунта
+//Задайте максимальное напряжение шунта {U шунт макс}
 int maxVoltShunt = 60;
 
-//Задайте максимальный ток шунта
+//Задайте максимальный ток шунта {I шунт макс}
 int maxCurrentShunt = 400;
 
-//Введите паспортную ёмкость для марки испольуемых аккумуляторов
+//Введите паспортную ёмкость для марки испольуемых аккумуляторов {C}
 int capacitanceOfBattery = 75;
 
-//Укажите число параллельных цепочек из аккумуляторов
+//Укажите число параллельных цепочек из аккумуляторов {N}
 int numberBattery = 4;
 
-//Введите значение коэффициента передачи аналогового предусилителя
+//Введите значение коэффициента передачи аналогового предусилителя {K}
 int coeffAnalogueAmplifier = 25;
 
-//Задайте ток запряда
+//Задайте ток запряда {S}
 double chargingCurrent = 2.8;
 
-//Задайте предельный ток заряда
+//Задайте предельный ток заряда {P}
 double maxChargCurrent = 3.5;
 
-//Задайте порог применения ускоренного заряда
+//Задайте порог применения ускоренного заряда {B}
 double thresholdForBoost = 0.9;
 
-//Задайте условие окончания ускоренного заряда
+//Задайте условие окончания ускоренного заряда {R}
 double thresholdBoostEnding = 0.25;
 
 //Задайте максимальное время работы в режиме boost в часах
@@ -85,24 +86,28 @@ byte timeInBoost = 8;
 //Задайте время задержки между повторным включением режима boost в минутах
 byte delayBoost = 15;
 
+// велечина напряжения сброса Ureset
+
+int voltageReset = 575;
+
 /******************************************************************************************************************************************************************/
 //ВЫЧИСЛЯЕМЫЕ ЗНАЧЕНИЯ
 
-//Напряжение соответствующее номинальному току заряда мВ
+//Напряжение соответствующее номинальному току заряда мВ Uномин
 
 double valueOfNominalCurrentOnVoltage = 0.1*capacitanceOfBattery*numberBattery*coeffAnalogueAmplifier*maxVoltShunt/maxCurrentShunt;
 
-//Напряжение, соответствующее выбранному току заряда
+//Напряжение, соответствующее выбранному току заряда U заряда
 int voltageOfCharge = valueOfNominalCurrentOnVoltage*chargingCurrent;
 
-//Напряжение, соответствующее предельному току заряда
+//Напряжение, соответствующее предельному току заряда U max
 int limitVoltageOfCharge = valueOfNominalCurrentOnVoltage*maxChargCurrent;
 
-//Вычисляем значение при котором происходит начало ускоренного заряда (переключение с Float на Boost)
+//Вычисляем значение при котором происходит начало ускоренного заряда (переключение с Float на Boost) Ustart
 
 int switchFloatToBoost = valueOfNominalCurrentOnVoltage*thresholdForBoost;
 
-//Вычисляем пороговое значение, при котором происходит переключения с функции Boost на Float (окончание ускоренного заряда)
+//Вычисляем пороговое значение, при котором происходит переключения с функции Boost на Float (окончание ускоренного заряда) Ustop
 
 int switchBoostToFloat = valueOfNominalCurrentOnVoltage*thresholdBoostEnding;
 
@@ -197,7 +202,27 @@ if(averageTemperature <= tempCalibrationADC) {
   outputSignal = outputMidFloatDAC;
 }
 else {
+  if(valueOfCurrent>limitVoltageOfCharge){
+    outputSignal=voltageReset;
+  }
+  else{
+    if(outputSignal > ){
+      
+    }
+  }
 
+
+
+
+
+
+
+
+
+
+
+
+  
 //проверяем первую ветку: ток на шунте больше порога флоат к буст
 
   if(valueOfCurrent > switchFloatToBoost){
