@@ -126,13 +126,13 @@ int maxTempBoostADC = (millivoltAtZeroDegrees + maxTempBoostDeg*changingMillivol
 
 //вычисляем значение выходного напряжения для 10-битного ЦАП, увеличиваем на единицу, т.к. в данной версии для Тубор это необходимо
 //из-за грубого округления при отбрасывании десятых долей
-int outputMaxDAC = outputMaximum/accuracyOutput + 1;
+int outputMaxDAC = outputMaximum*coefficientOfCalibration/accuracyOutput + 1;
 //вычисляем значение выходного напряжение средних точек Float для 10-битного ЦАП
-int outputMidFloatDAC = outputMiddleFloat/accuracyOutput;
+int outputMidFloatDAC = outputMiddleFloat*coefficientOfCalibration/accuracyOutput;
 //вычисляем значение выходно напряжения макисмальной точки для Boost, но в данном случае оно равно значению средних точек Float
 int outputMaxBoostDAC = outputMidFloatDAC;
 //вычисляем значение выходного напряжения при максимальной температуре для 10-битного ЦАП
-int outputMinDAC = outputFloatMinimum/accuracyOutput;
+int outputMinDAC = outputFloatMinimum*coefficientOfCalibration/accuracyOutput;
 
 //вычисляем точку калибровки для 10-битного АЦП
 int tempCalibrationADC = (millivoltAtZeroDegrees + tempCalibrationDeg*changingMillivoltPerOneDegrees)/accuracyInput;
