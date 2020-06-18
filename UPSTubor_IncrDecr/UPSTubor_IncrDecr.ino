@@ -153,14 +153,22 @@ unsigned long delayBoostMillis = delayBoost*60*1000;
 
 //Созадём массив на 10 точек для скользящей средней по температуре без инициализации
 int arrayTemp[10];
+int arrayCurrent[10];
+int arraySupport[20];
 
 //Создаём переменные для выходного сигнала и средней температуры для их использования в функции отображения на экране.
 int outputSignal;
 int averageTemperature;
 int shuntCurrent;
+int valueOfCurrent;
+int voltageSupport;
 //переменная для хранения времени работы в режиме boost и задержки на переход от float к boost
 unsigned long timerFloatBoost;
 unsigned long timerBoost;
+unsigned long timerVoltageShunt;
+unsigned long timerTemperature;
+unsigned long timerVoltageSupport;
+unsigned long timer
 
 /****************************************************************************************************************************************************************/
 
@@ -191,24 +199,38 @@ void setup() {
 
 void loop() {
 
-  //присваиваем переменной температуры значение скользящей средней, взятой из функции
-  averageTemperature = getMovingAverageTen(arrayTemp);
+  //БЛОК 1. получение данных по напряжению на шунте
+  
+  if(!isTimerWork(timerVoltageShunt, 15)){
+    valueOfCurrent = getMovAverageCurrent(arrayCurrent);
+    timerVoltageShunt = millis();
+  }
 
-  // получаем данные по напряжению от шунта
-  int valueOfCurrent = analogRead(INPUT_SHUNT);
+  //БЛОК 2. получение данных по температуре
+  if(!isTimerWork(timerTemperature,330)){
+    averageTemperature = getMovAverageTemp(arrayTemp);
+    timerVoltagaeShunt = millis();
+  }
 
-//условие калибровки (если температура ниже минус 40, то включаем режим выходного сигнала, равный среднему значению при Флоат)
-if(averageTemperature <= tempCalibrationADC) {
-  outputSignal = outputMidFloatDAC;
-}
-else {
-  if(valueOfCurrent>limitVoltageOfCharge){
+  //БЛОК 3. получение данных по Usupport
+  if(!isTimerWork(timerVoltageSupport, 15)){
+    voltageSupport = getMovAverageSupport(arraySupport);
+    timerVoltageSupport = millis();
+  }  
+
+  //БЛОК 4. Выбор графика boost/float
+  //условие калибровки (если температура ниже минус 40, то включаем режим выходного сигнала, равный среднему значению при Флоат)
+  if(averageTemperature <= tempCalibrationADC) {
+    outputSignal = outputMidFloatDAC;
+  }
+  else {
+    if(valueOfCurrent>limitVoltageOfCharge){
     outputSignal=voltageReset;
   }
-  else{
-    if(outputSignal > ){
+    else{
+      if(outputSignal > ){
       
-    }
+      }
   }
 
 
@@ -354,9 +376,9 @@ int outputBoost(int tempLevel){
    return outputSignalBoost;
 }
 
-//вычисление скользящей средней на 10 точек
+//вычисление скользящей средней на 10 точек для данных по температуре
 
-int getMovingAverageTen (int arrayTemp[10]) {
+int getMovAverageTemp (int arrayTemp[10]) {
   for(byte j = 0; j < 9; j++){
     arrayTemp[j] = arrayTemp[j+1];
   }
@@ -369,6 +391,39 @@ int getMovingAverageTen (int arrayTemp[10]) {
    }
   
   return sum/10;
+}
+
+//вычисление скользящей средней на 10 точек для данных по току Шунта
+
+int getMovAverageCurrent (int arrayCur[10]) {
+  for(byte j = 0; j < 9; j++){
+    arrayCur[j] = arrayCur[j+1];
+  }
+
+  arrayCur[9] = analogRead(INPUT_SHUNT);
+
+  int sum = 0;
+  for(byte i = 0; i < 10 ; i++){
+    sum += arrayCur[i];
+   }
+  
+  return sum/10;
+}
+
+// вычисление сокльзящей средней на 20 точек для Usupport
+int getMovAverageSupport(int arraySup[20]) {
+  for(byte j = 0; j < 19; j++){
+    arraySup[j] = arraySup[j+1];
+  }
+
+  arraySup[19] = analogRead(INPUT_SUPPORT);
+
+  int sum = 0;
+  for(byte i = 0; i < 20 ; i++){
+    sum += arraySup[i];
+   }
+  
+  return sum/20;
 }
 
 //проверка сколько времени прошло с момента старта программы, с обработкой переполнения
