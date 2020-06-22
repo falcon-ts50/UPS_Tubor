@@ -482,7 +482,7 @@ boolean isLastSignalBoost() {
 //функция показа данных в мониторе порта
 
 void displayingDataTemp () {
-  
+//6.1 10 битный блок
   Serial.print("Выходной сигнал в разрядности 10 бит: ");
   Serial.println(outputSignal);
   
@@ -496,8 +496,7 @@ void displayingDataTemp () {
   Serial.println(voltageSupport);
   Serial.println(" ");
   
-  
-  
+//6.2 блок фактических расчётных значений
   Serial.print("Выходной сигнал в милливольтах:");
   Serial.println(outputSignal*accuracyOutput);
   
@@ -510,7 +509,8 @@ void displayingDataTemp () {
   
   Serial.print("Опорное напряжение в милливольтах: ");
   Serial.println(voltageSupport*accuracyInput);
-  
+
+//6.3 блок
   //выбранный режим расчёта
   Serial.print("Текущий режим работы: ");
   Serial.println(mode);
