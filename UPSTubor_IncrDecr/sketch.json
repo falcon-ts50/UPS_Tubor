@@ -1,0 +1,9 @@
+{
+  "cpu": {
+    "fqbn": "arduino:samd:mkrzero",
+    "name": "Arduino MKRZERO",
+    "type": "serial"
+  },
+  "secrets": [],
+  "included_libs": []
+}
