@@ -17,7 +17,7 @@ int tempCalibrationDeg = -40;
 double accuracyInput = 1.611;
 
 //точность выходного сигнала, мВ, при 10 битном ЦАП
-// output max = 3300mV/1024 = 3.223 mV,
+// 3300mV/1024 = 3.223 mV,
 double accuracyOutput = 3.223;
 
 //Температурно-вольтовая характеристика аккумулятора Тубор
@@ -30,7 +30,7 @@ int tempFirstMidPointFloat = 15;
 //Задайте вторую точку при которой температура не изменяется
 int tempSecondMidFloatDeg = 35;
 //Задайте максимальную температуру в градусах Цельсия, после которой напряжение заряда не изменяется
-int maxTempFloatDeg = 50; 
+int maxTempFloatDeg = 50;
 
 //Режим Boost
 // задайте минимальную температуру в градусах Цельсия, ниже которой напряжение заряда не изменяется
@@ -39,7 +39,7 @@ int minTempBoostDeg = 30;
 int maxTempBoostDeg = 45;
 
 //задайте максимальное значение выходного напряжения в милливольтах для Boost и Float
-int outputMaximum= 2660;
+int outputMaximum = 2660;
 // задайте уровень напряжения средних температурных точек в милливольтах для режима Float
 int outputMiddleFloat = 2550;
 //задайте значение минимального выходного напряжения в милливольтах для режима Float
@@ -95,21 +95,23 @@ int voltageReset = 575;
 
 //Напряжение соответствующее номинальному току заряда мВ Uномин
 
-double valueOfNominalCurrentOnVoltage = 0.1*capacitanceOfBattery*numberBattery*coeffAnalogueAmplifier*maxVoltShunt/maxCurrentShunt;
+double valueOfNominalCurrentOnVoltage = 0.1 * capacitanceOfBattery * numberBattery * coeffAnalogueAmplifier * maxVoltShunt / maxCurrentShunt;
 
 //Напряжение, соответствующее выбранному току заряда U заряда
-int voltageOfCharge = valueOfNominalCurrentOnVoltage*chargingCurrent;
+int voltageOfCharge = valueOfNominalCurrentOnVoltage * chargingCurrent;
 
-//Напряжение, соответствующее предельному току заряда U max
-int limitVoltageOfCharge = valueOfNominalCurrentOnVoltage*maxChargCurrent;
+//Напряжение, соответствующее предельному току заряда U max (в мВ)
+int limitVoltageOfCharge = valueOfNominalCurrentOnVoltage * maxChargCurrent;
+//Umax в 10-битном исчислении
+int limitVoltageChrgDAC = limitVoltageOfCharge/accuracyInput;
 
 //Вычисляем значение Ustart при котором происходит начало ускоренного заряда (переключение с Float на Boost) Ustart
 
-int switchFloatToBoost = valueOfNominalCurrentOnVoltage*thresholdForBoost;
+int switchFloatToBoost = valueOfNominalCurrentOnVoltage * thresholdForBoost;
 
 //Вычисляем пороговое значение Ustop, при котором происходит переключения с функции Boost на Float (окончание ускоренного заряда) Ustop
 
-int switchBoostToFloat = valueOfNominalCurrentOnVoltage*thresholdBoostEnding;
+int switchBoostToFloat = valueOfNominalCurrentOnVoltage * thresholdBoostEnding;
 
 //режим работы
 String mode;
@@ -117,43 +119,46 @@ String mode;
 //текущее событие
 String event;
 
+//таймер
+String timerMode;
+
 //Вычисляем температуры для 10-битного АЦП
 
 //Вычисление минимальной температуры графика Float для 10-битного АЦП
-int minTempFloatADC = (millivoltAtZeroDegrees + minTempFloatDeg*changingMillivoltPerOneDegrees)/accuracyInput;
+int minTempFloatADC = (millivoltAtZeroDegrees + minTempFloatDeg*changingMillivoltPerOneDegrees) / accuracyInput;
 // вычисляем первую среднюю точку для 10-битного АЦП
-int tempFirstPointFloatADC = (millivoltAtZeroDegrees + tempFirstMidPointFloat*changingMillivoltPerOneDegrees)/accuracyInput;
+int tempFirstPointFloatADC = (millivoltAtZeroDegrees + tempFirstMidPointFloat*changingMillivoltPerOneDegrees) / accuracyInput;
 //вычисляем вторую среднюю точку для 10-битного АЦП
-int tempSecondPointFloatADC = (millivoltAtZeroDegrees + tempSecondMidFloatDeg*changingMillivoltPerOneDegrees)/accuracyInput;
+int tempSecondPointFloatADC = (millivoltAtZeroDegrees + tempSecondMidFloatDeg*changingMillivoltPerOneDegrees) / accuracyInput;
 //вычисляем максимальну температуру для 10-битного АЦП
-int maxTempFloatADC= (millivoltAtZeroDegrees + maxTempFloatDeg*changingMillivoltPerOneDegrees)/accuracyInput;
+int maxTempFloatADC = (millivoltAtZeroDegrees + maxTempFloatDeg*changingMillivoltPerOneDegrees) / accuracyInput;
 
 //Вычисление минимальной температуры графика Boost для 10-битного АЦП
-int minTempBoostADC = (millivoltAtZeroDegrees + minTempBoostDeg*changingMillivoltPerOneDegrees)/accuracyInput;
+int minTempBoostADC = (millivoltAtZeroDegrees + minTempBoostDeg*changingMillivoltPerOneDegrees) / accuracyInput;
 //Вычисление максимальной температуры графика Boost после которого происходит переход на Float для 10 битного АЦП
-int maxTempBoostADC = (millivoltAtZeroDegrees + maxTempBoostDeg*changingMillivoltPerOneDegrees)/accuracyInput;
+int maxTempBoostADC = (millivoltAtZeroDegrees + maxTempBoostDeg*changingMillivoltPerOneDegrees) / accuracyInput;
 
 //Вычисляем значения выходного напряжения управления для 10 битного ЦАП
 
 //вычисляем значение выходного напряжения для 10-битного ЦАП, увеличиваем на единицу, т.к. в данной версии для Тубор это необходимо
 //из-за грубого округления при отбрасывании десятых долей
-int outputMaxDAC = outputMaximum*coefficientOfCalibration/accuracyOutput + 1;
+int outputMaxDAC = outputMaximum * coefficientOfCalibration / accuracyOutput + 1;
 //вычисляем значение выходного напряжение средних точек Float для 10-битного ЦАП
-int outputMidFloatDAC = outputMiddleFloat*coefficientOfCalibration/accuracyOutput;
+int outputMidFloatDAC = outputMiddleFloat * coefficientOfCalibration / accuracyOutput;
 //вычисляем значение выходно напряжения макисмальной точки для Boost, но в данном случае оно равно значению средних точек Float
 int outputMaxBoostDAC = outputMidFloatDAC;
 //вычисляем значение выходного напряжения при максимальной температуре для 10-битного ЦАП
-int outputMinDAC = outputFloatMinimum*coefficientOfCalibration/accuracyOutput;
+int outputMinDAC = outputFloatMinimum * coefficientOfCalibration / accuracyOutput;
 
 //вычисляем точку калибровки для 10-битного АЦП
-int tempCalibrationADC = (millivoltAtZeroDegrees + tempCalibrationDeg*changingMillivoltPerOneDegrees)/accuracyInput;
+int tempCalibrationADC = (millivoltAtZeroDegrees + tempCalibrationDeg*changingMillivoltPerOneDegrees) / accuracyInput;
 
 //Переменные времени
 
 //время в миллисекундах в boost
-unsigned long timeInBoostMillis = timeInBoost*60*60*1000;
+unsigned long timeInBoostMillis = timeInBoost * 60 * 60 * 1000;
 //время в миллисекундах задержка между boost и float
-unsigned long delayBoostMillis = delayBoost*60*1000;
+unsigned long delayBoostMillis = delayBoost * 60 * 1000;
 
 //Перменные, расчитываемые при старте программы
 
@@ -190,34 +195,34 @@ void setup() {
   pinMode(INPUT_SUPPORT, INPUT);
   //Устанавливаем разрешение для работы с входным сигналом
   analogReference(AR_INTERNAL1V65);
-  
+
   analogWriteResolution(10);
   analogReadResolution(10);
-  
+
   // инициализация массива Температуры (ниже блок 2) для скользящей средней
-  for (int i=0; i<10; i++)
+  for (int i = 0; i < 10; i++)
   {
-  arrayTemp[i] = analogRead(INPUT_TEMP);
-  delay(10);
+    arrayTemp[i] = analogRead(INPUT_TEMP);
+    delay(10);
   }
-  
+
   // инициализация массива Шунта (ниже блок 1) для скользящей средней
-  for (int j=0; j<10; j++)
+  for (int j = 0; j < 10; j++)
   {
-  arrayCurrent[j] = analogRead(INPUT_SHUNT);
-  delay(10);
+    arrayCurrent[j] = analogRead(INPUT_SHUNT);
+    delay(10);
   }
   // инициализация массива Суппорта (ниже блок 3) для скользящей средней
 
-  for (int k=0; k<20; k++)
+  for (int k = 0; k < 20; k++)
   {
-  arraySupport[k] = analogRead(INPUT_SUPPORT);
-  delay(10);
+    arraySupport[k] = analogRead(INPUT_SUPPORT);
+    delay(10);
   }
 
   // делаем первоначальную иницаиализацию выходного сигнала
   outputSignal = voltageReset;
-  
+
   //инициализация таймеров
   timerFloatBoost = millis();
   timerBoost = millis();
@@ -226,9 +231,9 @@ void setup() {
   timerVoltageSupport = millis();
   timerComparator = millis();
   timerDisplaying = millis();
-  
+
   //открываем передачу данных для мониторинга
-   Serial.begin(9600);
+  Serial.begin(9600);
 }
 
 /*************************************************************************************************************************************************************************************/
@@ -236,106 +241,121 @@ void setup() {
 void loop() {
 
   //БЛОК 1. получение данных по напряжению на шунте
-  
-  if(!isTimerWork(timerVoltageShunt, 15)){
+
+  if (!isTimerWork(timerVoltageShunt, 15)) {
     valueOfCurrent = getMovAverageCurrent(arrayCurrent);
     timerVoltageShunt = millis();
   }
 
   //БЛОК 2. получение данных по температуре
-  if(!isTimerWork(timerTemperature, 330)){
+  if (!isTimerWork(timerTemperature, 330)) {
     averageTemperature = getMovAverageTemp(arrayTemp);
     timerVoltageShunt = millis();
   }
 
   //БЛОК 3. получение данных по Usupport
-  if(!isTimerWork(timerVoltageSupport, 15)){
+  if (!isTimerWork(timerVoltageSupport, 15)) {
     voltageSupport = getMovAverageSupport(arraySupport);
     timerVoltageSupport = millis();
-  }  
+  }
 
   //БЛОК 4. Выбор графика boost/float
   //условие калибровки (если температура ниже минус 40, то включаем режим выходного сигнала, равный среднему значению при Флоат)
-  if(!isTimerWork(timerComparator, 330)){
-    
+  if (!isTimerWork(timerComparator, 330)) {
+
     //4.1 проверка на включение тест режима (ниже минус 40)
-    if(averageTemperature <= tempCalibrationADC) {
+    if (averageTemperature <= tempCalibrationADC) {
       outputSignal = outputMidFloatDAC;
       mode = "Calibration";
+      event = "калибровка";
+      timerMode = "таймеры не работают";
     }
     else {
-    //4.2 проверка на 15-ти мнунтный таймер
-      if(isTimerWork(timerFloatBoost, delayBoostMillis)){
+      //4.2 проверка на 15-ти мнунтный таймер
+      if (isTimerWork(timerFloatBoost, delayBoostMillis)) {
         mode = "Float";
         voltageTemperature = outputFloat(averageTemperature);
+        timerMode = "15-ти минутный таймер работает";
+        
       }
-    //4.3 проверка на значение выше 45 градусов Цельсия
-      else if(averageTemperature>maxTempBoostADC){
+      //4.3 проверка на значение выше 45 градусов Цельсия
+      else if (averageTemperature > maxTempBoostADC) {
         mode = "Float";
         voltageTemperature = outputFloat(averageTemperature);
         timerFloatBoost = millis();
+        timerMode = "15-ти минутный таймер запущен";
       }
-    //4.4 проверка Ushunt <= Ustop
-      else if(valueOfCurrent <= switchBoostToFloat){
-        if(isLastSignalBoost()){
+      //4.4 проверка Ushunt <= Ustop
+      else if (valueOfCurrent <= switchBoostToFloat) {
+        if (isLastSignalBoost()) {
           mode = "Float";
           voltageTemperature = outputFloat(averageTemperature);
           timerFloatBoost = millis();
+          timerMode = "15-ти минутный таймер запущен";
         }
-        else{
+        else {
           mode = "Float";
           voltageTemperature = outputFloat(averageTemperature);
+          timerMode = "таймеры не работают";
         }
       }
-    //4.5 проверка Ushunt >= Ustart
-      else if(valueOfCurrent >= switchFloatToBoost){
+      //4.5 проверка Ushunt >= Ustart
+      else if (valueOfCurrent >= switchFloatToBoost) {
         mode = "Boost";
         voltageTemperature = outputBoost(averageTemperature);
+        timerMode = "таймеры не работают";
       }
-    //4.6 проверка Ushunt < Ustart
-      else if(valueOfCurrent < switchFloatToBoost){
-        if(isLastSignalBoost()){
-          if(isTimerWork(timerBoost, timeInBoostMillis)){
+      //4.6 проверка Ushunt < Ustart
+      else if (valueOfCurrent < switchFloatToBoost) {
+        ///////////////// подумать как запускать таймер!!!!!
+        if (isLastSignalBoost()) {
+          if (isTimerWork(timerBoost, timeInBoostMillis)) {
             mode = "Boost";
             voltageTemperature = outputBoost(averageTemperature);
+            timerMode = "8 часовой таймер работает";
           }
-          else{
+          else {
             mode = "Float";
             voltageTemperature = outputFloat(averageTemperature);
             timerFloatBoost = millis();
+            timerMode = "15-ти минутный таймер запущен";
           }
         }
-        else{
+        else {
           mode = "Float";
           voltageTemperature = outputFloat(averageTemperature);
+          timerMode = "таймеры не работают";
         }
       }
-      else mode = "Float";
+      else {
+      mode = "Float";
       voltageTemperature = outputFloat(averageTemperature);
-      
-    //БЛОК 5. Блок сравнения
+      timerMode = "таймеры не работают";
+      }
+        
+      //БЛОК 5. Блок сравнения
       //5.1 проверка на Ushunt > Umax
-      if(valueOfCurrent > limitVoltageOfCharge){
+      if (valueOfCurrent > limitVoltageChrgDAC) {
         outputSignal = voltageReset;
         event = "5.1 Ushunt > Umax; Uout = Ureset";
       }
       //5.2 проверка на Uout>Ut
-      else if(outputSignal > voltageTemperature){
+      else if (outputSignal > voltageTemperature) {
         outputSignal--;
         event = "5.2 Uout > Ut; Uout--";
       }
       //5.3 проверка на Uout=Ut
-      else if(outputSignal = voltageTemperature){
+      else if (outputSignal = voltageTemperature) {
         outputSignal = voltageTemperature;
         event = "5.3 Uout = Ut";
       }
       //5.4 проверка на Ushunt>Usuppl
-      else if(valueOfCurrent > voltageOfCharge){
+      else if (valueOfCurrent > voltageOfCharge) {
         //пустая операция
         event = "5.4 Ushunt > Usuppl; пустая операция";
-      } 
+      }
       //5.5 проверка на Usupport <= Ureset и проверка через либо 5.6 проверка на Uout >= Usupport
-      else if(voltageSupport <= voltageReset || outputSignal >= voltageSupport){
+      else if (voltageSupport <= voltageReset || outputSignal >= voltageSupport) {
         outputSignal++;
         event = "5.5/5.6 Usupport <= Ureset или Uout >= Usupport; Uout ++ ";
       }
@@ -345,124 +365,124 @@ void loop() {
         event = "5.7 Uout = Usupport";
       }
     }
-    
-    timerComparator = millis();
-    
-}
 
-  
-  analogWrite (OUTPUT_SIGNAL, outputSignal);
-  
-  if(!isTimerWork(timerDisplaying, 5000)){
-  displayingDataTemp ();
-  timerDisplaying = millis();
+    timerComparator = millis();
+
   }
-  
+
+
+  analogWrite (OUTPUT_SIGNAL, outputSignal);
+
+  if (!isTimerWork(timerDisplaying, 5000)) {
+    displayingDataTemp ();
+    timerDisplaying = millis();
+  }
+
 }
 /*********************************************************************************************************************************************************************************/
 
 //вычисление выходного сигнала по графику Float
 
-int outputFloat(int tempLevel){
-   int outputSignalFloat;
-   if(tempLevel <= minTempFloatADC){
+int outputFloat(int tempLevel) {
+  int outputSignalFloat;
+  if (tempLevel <= minTempFloatADC) {
     outputSignalFloat = outputMaxDAC;
-  } 
-  else if (tempLevel > minTempFloatADC && tempLevel <= tempFirstPointFloatADC){
-    outputSignalFloat = map(tempLevel, minTempFloatADC, tempFirstPointFloatADC, outputMaxDAC, outputMidFloatDAC); 
+  }
+  else if (tempLevel > minTempFloatADC && tempLevel <= tempFirstPointFloatADC) {
+    outputSignalFloat = map(tempLevel, minTempFloatADC, tempFirstPointFloatADC, outputMaxDAC, outputMidFloatDAC);
   }
   else if (tempLevel > tempFirstPointFloatADC && tempLevel <= tempSecondPointFloatADC) {
     outputSignalFloat = outputMidFloatDAC;
   }
-  else if (tempLevel > tempSecondPointFloatADC && tempLevel <= maxTempFloatADC){
+  else if (tempLevel > tempSecondPointFloatADC && tempLevel <= maxTempFloatADC) {
     outputSignalFloat = map(tempLevel, tempSecondPointFloatADC, maxTempFloatADC, outputMidFloatDAC, outputMinDAC);
   }
-  else if (tempLevel > maxTempFloatADC){
+  else if (tempLevel > maxTempFloatADC) {
     outputSignalFloat = outputMinDAC;
   }
   return outputSignalFloat;
-  
+
 }
 
 //вычисление выходного сигнала по графику Boost
 
-int outputBoost(int tempLevel){
-   int outputSignalBoost;
-   if(tempLevel <= minTempBoostADC) {
+int outputBoost(int tempLevel) {
+  int outputSignalBoost;
+  if (tempLevel <= minTempBoostADC) {
     outputSignalBoost = outputMaxDAC;
-   }
-   else if(tempLevel > minTempBoostADC && tempLevel <= maxTempBoostADC) {
-     outputSignalBoost = map (tempLevel, minTempBoostADC, maxTempBoostADC, outputMaxDAC, outputMaxBoostDAC);    
-   }
-   else outputSignalBoost = outputFloat (tempLevel);
-   
-   return outputSignalBoost;
+  }
+  else if (tempLevel > minTempBoostADC && tempLevel <= maxTempBoostADC) {
+    outputSignalBoost = map (tempLevel, minTempBoostADC, maxTempBoostADC, outputMaxDAC, outputMaxBoostDAC);
+  }
+  else outputSignalBoost = outputFloat (tempLevel);
+
+  return outputSignalBoost;
 }
 
 //вычисление скользящей средней на 10 точек для данных по температуре
 
 int getMovAverageTemp (int arrayTemp[10]) {
-  for(byte j = 0; j < 9; j++){
-    arrayTemp[j] = arrayTemp[j+1];
+  for (byte j = 0; j < 9; j++) {
+    arrayTemp[j] = arrayTemp[j + 1];
   }
 
   arrayTemp[9] = analogRead(INPUT_TEMP);
 
   int sum = 0;
-  for(byte i = 0; i < 10 ; i++){
+  for (byte i = 0; i < 10 ; i++) {
     sum += arrayTemp[i];
-   }
-  
-  return sum/10;
+  }
+
+  return sum / 10;
 }
 
 //вычисление скользящей средней на 10 точек для данных по току Шунта
 
 int getMovAverageCurrent (int arrayCur[10]) {
-  for(byte j = 0; j < 9; j++){
-    arrayCur[j] = arrayCur[j+1];
+  for (byte j = 0; j < 9; j++) {
+    arrayCur[j] = arrayCur[j + 1];
   }
 
   arrayCur[9] = analogRead(INPUT_SHUNT);
 
   int sum = 0;
-  for(byte i = 0; i < 10 ; i++){
+  for (byte i = 0; i < 10 ; i++) {
     sum += arrayCur[i];
-   }
-  
-  return sum/10;
+  }
+
+  return sum / 10;
 }
 
 // вычисление сокльзящей средней на 20 точек для Usupport
 int getMovAverageSupport(int arraySup[20]) {
-  for(byte j = 0; j < 19; j++){
-    arraySup[j] = arraySup[j+1];
+  for (byte j = 0; j < 19; j++) {
+    arraySup[j] = arraySup[j + 1];
   }
 
   arraySup[19] = analogRead(INPUT_SUPPORT);
 
   int sum = 0;
-  for(byte i = 0; i < 20 ; i++){
+  for (byte i = 0; i < 20 ; i++) {
     sum += arraySup[i];
-   }
-  
-  return sum/20;
+  }
+
+  return sum / 20;
 }
 
 //проверка сколько времени прошло с момента старта программы, с обработкой переполнения
 
-boolean isTimerWork(unsigned long timeWork, unsigned long timeLimit){
+boolean isTimerWork(unsigned long timeWork, unsigned long timeLimit) {
 
-  if (millis()- timeWork < timeLimit){
+  if (millis() - timeWork < timeLimit) {
     return true;
   }
-    else return false;
-  }
+  else return false;
+}
 
 //проверка что последний сигнал был Float
 
 boolean isLastSignalFloat() {
-  if(outputSignal <= outputBoost(averageTemperature) - 10){
+  if (outputSignal <= outputBoost(averageTemperature) - 10) {
 
     return true;
   }
@@ -472,7 +492,7 @@ boolean isLastSignalFloat() {
 //проверка что последний сигнал был Boost
 
 boolean isLastSignalBoost() {
-  if(outputSignal >= outputFloat(averageTemperature) + 10){
+  if (outputSignal >= outputFloat(averageTemperature) + 10) {
 
     return true;
   }
@@ -482,49 +502,53 @@ boolean isLastSignalBoost() {
 //функция показа данных в мониторе порта
 
 void displayingDataTemp () {
-//6.1 10 битный блок
+  //6.1 10 битный блок
   Serial.print("Выходной сигнал в разрядности 10 бит: ");
   Serial.println(outputSignal);
-  
+
   Serial.print("Температура в 10 битах: ");
-  Serial.println(averageTemperature);  
-  
+  Serial.println(averageTemperature);
+
   Serial.print("Напряжение шунта в 10 битах: ");
   Serial.println(valueOfCurrent);
-  
+
   Serial.print("Опорное напряжение в 10 битах: ");
   Serial.println(voltageSupport);
   Serial.println(" ");
-  
-//6.2 блок фактических расчётных значений
-  Serial.print("Выходной сигнал в милливольтах:");
-  Serial.println(outputSignal*accuracyOutput);
-  
-  double tempDeg = (averageTemperature*1650.0/1023.0-500.0)/10.0;
-  Serial.print("Температура в градусах C: ");
-  Serial.println(tempDeg*accuracyInput);
-  
-  Serial.print("Напряжение шунта в милливольтах: ");
-  Serial.println(valueOfCurrent*accuracyInput);
-  
-  Serial.print("Опорное напряжение в милливольтах: ");
-  Serial.println(voltageSupport*accuracyInput);
 
-//6.3 блок
+  //6.2 блок фактических расчётных значений
+  Serial.print("Выходной сигнал в милливольтах:");
+  Serial.println(outputSignal * accuracyOutput);
+
+  double tempDeg = (averageTemperature * 1650.0 / 1023.0 - 500.0) / 10.0;
+  Serial.print("Температура в градусах C: ");
+  Serial.println(tempDeg * accuracyInput);
+
+  Serial.print("Напряжение шунта в милливольтах: ");
+  Serial.println(valueOfCurrent * accuracyInput);
+
+  Serial.print("Опорное напряжение в милливольтах: ");
+  Serial.println(voltageSupport * accuracyInput);
+
+  //6.3 блок
   //выбранный режим расчёта
   Serial.print("Текущий режим работы: ");
   Serial.println(mode);
-  
+
   //текущее событие
   Serial.print("Текущиее событие: ");
   Serial.println(event);
-  
+
+  //статус таймеров
+  Serial.print("Статус таймеров: ");
+  Serial.println(timerMode);
+
   /*
-  for(int i = 0 ; i < 10 ; i ++) {
-  Serial.print("элемент массива: ");
-  Serial.println(i);
-  Serial.println(arrayTemp[i]);
-  }
+    for(int i = 0 ; i < 10 ; i ++) {
+    Serial.print("элемент массива: ");
+    Serial.println(i);
+    Serial.println(arrayTemp[i]);
+    }
   */
   Serial.println(" ");
   Serial.println(" ");
