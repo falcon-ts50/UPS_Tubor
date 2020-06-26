@@ -270,9 +270,9 @@ void loop() {
       event = "калибровка";
       timerMode = "таймеры не работают";
     }
-    else {
+    
       //4.2 проверка на 15-ти мнунтный таймер
-      if (isTimerWork(timerFloatBoost, delayBoostMillis)) {
+    else if (isTimerWork(timerFloatBoost, delayBoostMillis)) {
         mode = "Float";
         voltageTemperature = outputFloat(averageTemperature);
         timerMode = "15-ти минутный таймер работает";
@@ -364,7 +364,7 @@ void loop() {
         outputSignal = voltageSupport;
         event = "5.7 Uout = Usupport";
       }
-    }
+    
 
     timerComparator = millis();
 
