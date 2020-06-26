@@ -179,6 +179,7 @@ int voltageSupport;
 int voltageTemperature;
 
 boolean isUstart = false;
+boolean isLastSignalBoost = false;
 
 //переменные для хранения времени таймеров
 unsigned long timerFloatBoost;
@@ -282,21 +283,24 @@ void loop() {
         timerFloatBoost = millis();
         timerMode = "15-ти минутный таймер запущен";
         isUstart = false;
+        isLastSignalBoost = false;
       }
       //4.4 проверка Ushunt <= Ustop
       else if (valueOfCurrent <= switchBoostToFloat) {
-        if (isLastSignalBoost()) {
+        if (isLastSignalBoost) {
           mode = "4.4 Float";
           voltageTemperature = outputFloat(averageTemperature);
           timerFloatBoost = millis();
           timerMode = "15-ти минутный таймер запущен";
           isUstart = false;
+          isLastSignalBoost = false;
         }
         else {
           mode = "4.4 else Float";
           voltageTemperature = outputFloat(averageTemperature);
           timerMode = "таймеры не работают";
           isUstart = false;
+          isLastSignalBoost = false;
         }
       }
       //4.5 проверка Ushunt >= Ustart
@@ -305,6 +309,7 @@ void loop() {
         voltageTemperature = outputBoost(averageTemperature);
         timerMode = "таймеры не работают";
         isUstart = true;
+        isLastSignalBoost = true;
       }
       //4.6 проверка момента перехода Ustart в сторону Ustop
       else if (isUstart) {
@@ -313,25 +318,29 @@ void loop() {
         timerBoost = millis();
         timerMode = "запущен 8-ми часовой таймер";
         voltageTemperature = outputBoost(averageTemperature);
+        isLastSignalBoost = true;
       }
       //4.7 проверка на работу 8 часового таймера
       else if (isTimerWork(timerBoost, timeInBoostMillis)) {
         mode = "4.7 Boost";
         voltageTemperature = outputBoost(averageTemperature);
         timerMode = "8 часовой таймер работает";
+        isLastSignalBoost = true;
       }
       //4.8 проверка последний сигнал был Boost?
-      else if(isLastSignalBoost()) {
+      else if(isLastSignalBoost) {
          mode = "4.8 Float";
          voltageTemperature = outputFloat(averageTemperature);
          timerFloatBoost = millis();
          timerMode = "15-ти минутный таймер запущен";
+         isLastSignalBoost = false;
       }
       //4.9 предохранительная ветка
       else {
       mode = "4.9 Float";
       voltageTemperature = outputFloat(averageTemperature);
       timerMode = "таймеры не работают";
+      isLastSignalBoost = false;
       }
         
       //БЛОК 5. Блок сравнения
@@ -487,25 +496,7 @@ boolean isTimerWork(unsigned long timeWork, unsigned long timeLimit) {
   else return false;
 }
 
-//проверка что последний сигнал был Float
 
-boolean isLastSignalFloat() {
-  if (outputSignal <= outputBoost(averageTemperature) - 10) {
-
-    return true;
-  }
-  else return false;
-}
-
-//проверка что последний сигнал был Boost
-
-boolean isLastSignalBoost() {
-  if (outputSignal >= outputFloat(averageTemperature) + 10) {
-
-    return true;
-  }
-  else return false;
-}
 
 //функция показа данных в мониторе порта
 
