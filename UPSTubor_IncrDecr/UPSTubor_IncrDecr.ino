@@ -138,6 +138,9 @@ int minTempBoostADC = (millivoltAtZeroDegrees + minTempBoostDeg*changingMillivol
 //Вычисление максимальной температуры графика Boost после которого происходит переход на Float для 10 битного АЦП
 int maxTempBoostADC = (millivoltAtZeroDegrees + maxTempBoostDeg*changingMillivoltPerOneDegrees) / accuracyInput;
 
+//Перевод температуры -40 в 10 бит
+int minTempCalibr = (millivoltAtZeroDegrees - 40 * changingMillivoltPerOneDegrees) / accuracyInput;
+
 //Вычисляем значения выходного напряжения управления для 10 битного ЦАП
 
 //вычисляем значение выходного напряжения для 10-битного ЦАП, увеличиваем на единицу, т.к. в данной версии для Тубор это необходимо
@@ -174,6 +177,8 @@ int shuntCurrent;
 int valueOfCurrent;
 int voltageSupport;
 int voltageTemperature;
+
+boolean flag = false;
 
 //переменные для хранения времени таймеров
 unsigned long timerFloatBoost;
@@ -243,12 +248,12 @@ void loop() {
   //БЛОК 1. получение данных по напряжению на шунте
 
   if (!isTimerWork(timerVoltageShunt, 15)) {
-    valueOfCurrent = getMovAverageCurrent(arrayCurrent);
+    valueOfCurrent = 2*getMovAverageCurrent(arrayCurrent);
     timerVoltageShunt = millis();
   }
 
   //БЛОК 2. получение данных по температуре
-  if (!isTimerWork(timerTemperature, 330)) {
+  if (!isTimerWork(timerTemperature, 1000)) {
     averageTemperature = getMovAverageTemp(arrayTemp);
     timerVoltageShunt = millis();
   }
@@ -262,14 +267,6 @@ void loop() {
   //БЛОК 4. Выбор графика boost/float
   //условие калибровки (если температура ниже минус 40, то включаем режим выходного сигнала, равный среднему значению при Флоат)
   if (!isTimerWork(timerComparator, 330)) {
-
-    //4.1 проверка на включение тест режима (ниже минус 40)
-    if (averageTemperature <= tempCalibrationADC) {
-      outputSignal = outputMidFloatDAC;
-      mode = "Calibration";
-      event = "калибровка";
-      timerMode = "таймеры не работают";
-    }
     
       //4.2 проверка на 15-ти мнунтный таймер
     else if (isTimerWork(timerFloatBoost, delayBoostMillis)) {
@@ -385,7 +382,11 @@ void loop() {
 
 int outputFloat(int tempLevel) {
   int outputSignalFloat;
-  if (tempLevel <= minTempFloatADC) {
+
+  if (tempLevel < minTempCalibr) {
+    outputSignalFloat = outputMidFloatDAC;
+  }
+  else if (tempLevel <= minTempFloatADC) {
     outputSignalFloat = outputMaxDAC;
   }
   else if (tempLevel > minTempFloatADC && tempLevel <= tempFirstPointFloatADC) {
@@ -408,7 +409,10 @@ int outputFloat(int tempLevel) {
 
 int outputBoost(int tempLevel) {
   int outputSignalBoost;
-  if (tempLevel <= minTempBoostADC) {
+  if (tempLevel < minTempCalibr) {
+    outputSignalBoost = outputMidFloatDAC;
+  }
+  else if (tempLevel <= minTempBoostADC) {
     outputSignalBoost = outputMaxDAC;
   }
   else if (tempLevel > minTempBoostADC && tempLevel <= maxTempBoostADC) {
