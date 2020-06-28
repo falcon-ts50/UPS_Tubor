@@ -107,11 +107,15 @@ int limitVoltageChrgDAC = limitVoltageOfCharge/accuracyInput;
 
 //Вычисляем значение Ustart при котором происходит начало ускоренного заряда (переключение с Float на Boost) Ustart
 
-int switchFloatToBoost = valueOfNominalCurrentOnVoltage * thresholdForBoost;
+double switchFloatToBoost = valueOfNominalCurrentOnVoltage * thresholdForBoost;
+//пересчёт в 10 бит
+int switchFloatToBoostADC = switchFloatToBoost/accuracyInput;
 
 //Вычисляем пороговое значение Ustop, при котором происходит переключения с функции Boost на Float (окончание ускоренного заряда) Ustop
 
-int switchBoostToFloat = valueOfNominalCurrentOnVoltage * thresholdBoostEnding;
+double switchBoostToFloat = valueOfNominalCurrentOnVoltage * thresholdBoostEnding;
+//пересчёт в 10 бит
+int switchBoostToFloatADC = switchBoostToFloat/accuracyInput;
 
 //режим работы
 String mode;
@@ -286,7 +290,7 @@ void loop() {
         isLastSignalBoost = false;
       }
       //4.4 проверка Ushunt <= Ustop
-      else if (valueOfCurrent <= switchBoostToFloat) {
+      else if (valueOfCurrent <= switchBoostToFloatADC) {
         if (isLastSignalBoost) {
           mode = "4.4 Float";
           voltageTemperature = outputFloat(averageTemperature);
@@ -304,7 +308,7 @@ void loop() {
         }
       }
       //4.5 проверка Ushunt >= Ustart
-      else if (valueOfCurrent >= switchFloatToBoost) {
+      else if (valueOfCurrent >= switchFloatToBoostADC) {
         mode = "4.5 Boost";
         voltageTemperature = outputBoost(averageTemperature);
         timerMode = "таймеры не работают";
@@ -398,6 +402,7 @@ int outputFloat(int tempLevel) {
 
   if (tempLevel < minTempCalibr) {
     outputSignalFloat = outputMidFloatDAC;
+    mode = "Calibration";
   }
   else if (tempLevel <= minTempFloatADC) {
     outputSignalFloat = outputMaxDAC;
@@ -424,6 +429,7 @@ int outputBoost(int tempLevel) {
   int outputSignalBoost;
   if (tempLevel < minTempCalibr) {
     outputSignalBoost = outputMidFloatDAC;
+    mode = "Calibration";
   }
   else if (tempLevel <= minTempBoostADC) {
     outputSignalBoost = outputMaxDAC;
