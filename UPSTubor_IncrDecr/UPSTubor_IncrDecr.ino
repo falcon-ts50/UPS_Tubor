@@ -97,8 +97,10 @@ int voltageReset = 575;
 
 double valueOfNominalCurrentOnVoltage = 0.1 * capacitanceOfBattery * numberBattery * coeffAnalogueAmplifier * maxVoltShunt / maxCurrentShunt;
 
-//Напряжение, соответствующее выбранному току заряда U заряда
-int voltageOfCharge = valueOfNominalCurrentOnVoltage * chargingCurrent;
+//Напряжение, соответствующее выбранному току заряда U заряда  в мВ
+double voltageOfCharge = valueOfNominalCurrentOnVoltage * chargingCurrent;
+//Переводим в 10 бит
+int voltageOfChargeADC = voltageOfCharge/accuracyInput;
 
 //Напряжение, соответствующее предельному току заряда U max (в мВ)
 int limitVoltageOfCharge = valueOfNominalCurrentOnVoltage * maxChargCurrent;
@@ -363,8 +365,8 @@ void loop() {
         outputSignal = voltageTemperature;
         event = "5.3 Uout = Ut";
       }
-      //5.4 проверка на Ushunt>Usuppl
-      else if (valueOfCurrent > voltageOfCharge) {
+      //5.4 проверка на Ushunt>Usuppl 
+      else if (valueOfCurrent > voltageOfChargeADC) {
         //пустая операция
         event = "5.4 Ushunt > Usuppl; пустая операция";
       }
