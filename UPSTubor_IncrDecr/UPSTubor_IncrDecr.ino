@@ -144,9 +144,6 @@ int minTempBoostADC = (millivoltAtZeroDegrees + minTempBoostDeg*changingMillivol
 //Вычисление максимальной температуры графика Boost после которого происходит переход на Float для 10 битного АЦП
 int maxTempBoostADC = (millivoltAtZeroDegrees + maxTempBoostDeg*changingMillivoltPerOneDegrees) / accuracyInput;
 
-//Перевод температуры -40 в 10 бит
-int minTempCalibr = (millivoltAtZeroDegrees - 40 * changingMillivoltPerOneDegrees) / accuracyInput;
-
 //Вычисляем значения выходного напряжения управления для 10 битного ЦАП
 
 //вычисляем значение выходного напряжения для 10-битного ЦАП, увеличиваем на единицу, т.к. в данной версии для Тубор это необходимо
@@ -402,7 +399,7 @@ void loop() {
 int outputFloat(int tempLevel) {
   int outputSignalFloat;
 
-  if (tempLevel < minTempCalibr) {
+  if (tempLevel < tempCalibrationADC) {
     outputSignalFloat = outputMidFloatDAC;
     mode = "Calibration";
   }
@@ -429,7 +426,7 @@ int outputFloat(int tempLevel) {
 
 int outputBoost(int tempLevel) {
   int outputSignalBoost;
-  if (tempLevel < minTempCalibr) {
+  if (tempLevel < tempCalibrationADC) {
     outputSignalBoost = outputMidFloatDAC;
     mode = "Calibration";
   }
