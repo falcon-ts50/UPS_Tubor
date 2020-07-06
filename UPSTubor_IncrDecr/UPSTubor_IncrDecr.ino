@@ -526,7 +526,7 @@ void displayingDataTemp () {
 
   double tempDeg = (averageTemperature * 1650.0 / 1023.0 - 500.0) / 10.0;
   Serial.print("Температура в градусах C: ");
-  Serial.println(tempDeg * accuracyInput);
+  Serial.println(tempDeg);
 
   Serial.print("Напряжение шунта в милливольтах: ");
   Serial.println(valueOfCurrent * accuracyInput);
