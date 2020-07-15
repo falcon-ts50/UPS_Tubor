@@ -358,7 +358,7 @@ void loop() {
         event = "5.2 Uout > Ut; Uout--";
       }
       //5.3 проверка на Uout=Ut
-      else if (outputSignal = voltageTemperature) {
+      else if (outputSignal == voltageTemperature) {
         outputSignal = voltageTemperature;
         event = "5.3 Uout = Ut";
       }
