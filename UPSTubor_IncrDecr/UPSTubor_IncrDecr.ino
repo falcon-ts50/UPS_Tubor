@@ -151,10 +151,10 @@ int maxTempBoostADC = (millivoltAtZeroDegrees + maxTempBoostDeg*changingMillivol
 int outputMaxDAC = outputMaximum * coefficientOfCalibration / accuracyOutput + 1;
 //вычисляем значение выходного напряжение средних точек Float для 10-битного ЦАП
 int outputMidFloatDAC = outputMiddleFloat * coefficientOfCalibration / accuracyOutput;
-//вычисляем значение выходно напряжения макисмальной точки для Boost, но в данном случае оно равно значению средних точек Float
-int outputMaxBoostDAC = outputMidFloatDAC;
+//вычисляем значение вых напряжени при минимальной температуре для Boost для 10-битного ЦАП
+int outputMinBoostDAC = outputBoostMinimum * coefficientOfCalibration / accuracyOutput;
 //вычисляем значение выходного напряжения при максимальной температуре для 10-битного ЦАП
-int outputMinDAC = outputFloatMinimum * coefficientOfCalibration / accuracyOutput;
+int outputMinFloatDAC = outputFloatMinimum * coefficientOfCalibration / accuracyOutput;
 
 //вычисляем точку калибровки для 10-битного АЦП
 int tempCalibrationADC = (millivoltAtZeroDegrees + tempCalibrationDeg*changingMillivoltPerOneDegrees) / accuracyInput;
@@ -413,10 +413,10 @@ int outputFloat(int tempLevel) {
     outputSignalFloat = outputMidFloatDAC;
   }
   else if (tempLevel > tempSecondPointFloatADC && tempLevel <= maxTempFloatADC) {
-    outputSignalFloat = map(tempLevel, tempSecondPointFloatADC, maxTempFloatADC, outputMidFloatDAC, outputMinDAC);
+    outputSignalFloat = map(tempLevel, tempSecondPointFloatADC, maxTempFloatADC, outputMidFloatDAC, outputMinFloatDAC);
   }
   else if (tempLevel > maxTempFloatADC) {
-    outputSignalFloat = outputMinDAC;
+    outputSignalFloat = outputMinFloatDAC;
   }
   return outputSignalFloat;
 
@@ -434,7 +434,7 @@ int outputBoost(int tempLevel) {
     outputSignalBoost = outputMaxDAC;
   }
   else if (tempLevel > minTempBoostADC && tempLevel <= maxTempBoostADC) {
-    outputSignalBoost = map (tempLevel, minTempBoostADC, maxTempBoostADC, outputMaxDAC, outputMaxBoostDAC);
+    outputSignalBoost = map (tempLevel, minTempBoostADC, maxTempBoostADC, outputMaxDAC, outputMinBoostDAC);
   }
   else outputSignalBoost = outputFloat (tempLevel);
 
