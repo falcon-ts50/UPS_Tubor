@@ -80,13 +80,13 @@ double thresholdForBoost = 0.9;
 //Задайте условие окончания ускоренного заряда {R}
 double thresholdBoostEnding = 0.25;
 
-//Задайте максимальное время работы в режиме boost в часах
-byte timeInBoost = 8;
+//Задайте максимальное время работы в режиме boost в минутах
+byte timeInBoost = 8 * 60;
 
 //Задайте время задержки между повторным включением режима boost в минутах
 byte delayBoost = 15;
 
-// велечина напряжения сброса Ureset
+// велечина напряжения сброса Ureset  в 10 битах
 
 int voltageReset = 575;
 
@@ -162,7 +162,7 @@ int tempCalibrationADC = (millivoltAtZeroDegrees + tempCalibrationDeg*changingMi
 //Переменные времени
 
 //время в миллисекундах в boost
-unsigned long timeInBoostMillis = timeInBoost * 60 * 60 * 1000;
+unsigned long timeInBoostMillis = timeInBoost * 60 * 1000;
 //время в миллисекундах задержка между boost и float
 unsigned long delayBoostMillis = delayBoost * 60 * 1000;
 
