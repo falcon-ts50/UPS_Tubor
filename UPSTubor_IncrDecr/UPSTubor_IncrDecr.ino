@@ -252,7 +252,7 @@ void loop() {
   //БЛОК 1. получение данных по напряжению на шунте
 
   if (!isTimerWork(timerVoltageShunt, 15)) {
-    valueOfCurrent = 2*getMovAverageCurrent(arrayCurrent);
+    valueOfCurrent = getMovAverageCurrent(arrayCurrent);
     timerVoltageShunt = millis();
   }
 
@@ -264,7 +264,7 @@ void loop() {
 
   //БЛОК 3. получение данных по Usupport
   if (!isTimerWork(timerVoltageSupport, 15)) {
-    voltageSupport = getMovAverageSupport(arraySupport);
+    voltageSupport = 2*getMovAverageSupport(arraySupport);
     timerVoltageSupport = millis();
   }
 
