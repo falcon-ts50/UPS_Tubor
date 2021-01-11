@@ -39,13 +39,13 @@ int minTempBoostDeg = 30;
 int maxTempBoostDeg = 45;
 
 //задайте максимальное значение выходного напряжения в милливольтах для Boost и Float
-int outputMaximum = 2660;
+int outputMaximum = 2400;
 // задайте уровень напряжения средних температурных точек в милливольтах для режима Float
-int outputMiddleFloat = 2550;
+int outputMiddleFloat = 2300;
 //задайте значение минимального выходного напряжения в милливольтах для режима Float
-int outputFloatMinimum = 2468;
+int outputFloatMinimum = 2300;
 //задайте значение минимального выходного напряжения в милливольтах для режима Boost
-int outputBoostMinimum = 2550;
+int outputBoostMinimum = 2225;
 
 //задайте коэффициент преобразования для базовой шкалы "мВ на элемент" для получения калиброванного напряжения
 
