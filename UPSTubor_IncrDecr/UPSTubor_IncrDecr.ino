@@ -245,6 +245,7 @@ void setup() {
   timerVoltageSupport = millis();
   timerComparator = millis();
   timerDisplaying = millis();
+  isStart = true;
 
 
   //открываем передачу данных для мониторинга
