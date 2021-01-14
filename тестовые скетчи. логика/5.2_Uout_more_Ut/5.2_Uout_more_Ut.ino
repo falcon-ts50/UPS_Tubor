@@ -39,13 +39,13 @@ int minTempBoostDeg = 30;
 int maxTempBoostDeg = 45;
 
 //задайте максимальное значение выходного напряжения в милливольтах для Boost и Float
-int outputMaximum = 2400;
+int outputMaximum = 2660;
 // задайте уровень напряжения средних температурных точек в милливольтах для режима Float
-int outputMiddleFloat = 2300;
+int outputMiddleFloat = 2550;
 //задайте значение минимального выходного напряжения в милливольтах для режима Float
-int outputFloatMinimum = 2225;
+int outputFloatMinimum = 2468;
 //задайте значение минимального выходного напряжения в милливольтах для режима Boost
-int outputBoostMinimum = 2300;
+int outputBoostMinimum = 2550;
 
 //задайте коэффициент преобразования для базовой шкалы "мВ на элемент" для получения калиброванного напряжения
 
@@ -80,13 +80,13 @@ double thresholdForBoost = 0.9;
 //Задайте условие окончания ускоренного заряда {R}
 double thresholdBoostEnding = 0.25;
 
-//Задайте максимальное время работы в режиме boost в минутах
-byte timeInBoost = 8 * 60;
+//Задайте максимальное время работы в режиме boost в часах
+byte timeInBoost = 8;
 
 //Задайте время задержки между повторным включением режима boost в минутах
 byte delayBoost = 15;
 
-// велечина напряжения сброса Ureset  в 10 битах
+// велечина напряжения сброса Ureset
 
 int voltageReset = 575;
 
@@ -144,6 +144,9 @@ int minTempBoostADC = (millivoltAtZeroDegrees + minTempBoostDeg*changingMillivol
 //Вычисление максимальной температуры графика Boost после которого происходит переход на Float для 10 битного АЦП
 int maxTempBoostADC = (millivoltAtZeroDegrees + maxTempBoostDeg*changingMillivoltPerOneDegrees) / accuracyInput;
 
+//Перевод температуры -40 в 10 бит
+int minTempCalibr = (millivoltAtZeroDegrees - 40 * changingMillivoltPerOneDegrees) / accuracyInput;
+
 //Вычисляем значения выходного напряжения управления для 10 битного ЦАП
 
 //вычисляем значение выходного напряжения для 10-битного ЦАП, увеличиваем на единицу, т.к. в данной версии для Тубор это необходимо
@@ -151,10 +154,10 @@ int maxTempBoostADC = (millivoltAtZeroDegrees + maxTempBoostDeg*changingMillivol
 int outputMaxDAC = outputMaximum * coefficientOfCalibration / accuracyOutput + 1;
 //вычисляем значение выходного напряжение средних точек Float для 10-битного ЦАП
 int outputMidFloatDAC = outputMiddleFloat * coefficientOfCalibration / accuracyOutput;
-//вычисляем значение вых напряжени при минимальной температуре для Boost для 10-битного ЦАП
-int outputMinBoostDAC = outputBoostMinimum * coefficientOfCalibration / accuracyOutput;
+//вычисляем значение выходно напряжения макисмальной точки для Boost, но в данном случае оно равно значению средних точек Float
+int outputMaxBoostDAC = outputMidFloatDAC;
 //вычисляем значение выходного напряжения при максимальной температуре для 10-битного ЦАП
-int outputMinFloatDAC = outputFloatMinimum * coefficientOfCalibration / accuracyOutput;
+int outputMinDAC = outputFloatMinimum * coefficientOfCalibration / accuracyOutput;
 
 //вычисляем точку калибровки для 10-битного АЦП
 int tempCalibrationADC = (millivoltAtZeroDegrees + tempCalibrationDeg*changingMillivoltPerOneDegrees) / accuracyInput;
@@ -162,7 +165,7 @@ int tempCalibrationADC = (millivoltAtZeroDegrees + tempCalibrationDeg*changingMi
 //Переменные времени
 
 //время в миллисекундах в boost
-unsigned long timeInBoostMillis = timeInBoost * 60 * 1000;
+unsigned long timeInBoostMillis = timeInBoost * 60 * 60 * 1000;
 //время в миллисекундах задержка между boost и float
 unsigned long delayBoostMillis = delayBoost * 60 * 1000;
 
@@ -252,25 +255,27 @@ void loop() {
   //БЛОК 1. получение данных по напряжению на шунте
 
   if (!isTimerWork(timerVoltageShunt, 15)) {
-    valueOfCurrent = getMovAverageCurrent(arrayCurrent);
+    valueOfCurrent = 60;
     timerVoltageShunt = millis();
   }
 
   //БЛОК 2. получение данных по температуре
   if (!isTimerWork(timerTemperature, 1000)) {
-    averageTemperature = getMovAverageTemp(arrayTemp);
-    timerTemperature = millis();
+    averageTemperature = 370;
+    timerVoltageShunt = millis();
   }
 
   //БЛОК 3. получение данных по Usupport
   if (!isTimerWork(timerVoltageSupport, 15)) {
-    voltageSupport = 2*getMovAverageSupport(arraySupport);
+    voltageSupport = getMovAverageSupport(arraySupport);
     timerVoltageSupport = millis();
   }
 
   //БЛОК 4. Выбор графика boost/float
   //условие калибровки (если температура ниже минус 40, то включаем режим выходного сигнала, равный среднему значению при Флоат)
-  if (!isTimerWork(timerComparator, 330)) {
+  if (!isTimerWork(timerComparator, 2000)) {
+
+       outputSignal = 1020;
     
       //4.2 проверка на 15-ти мнунтный таймер
       if (isTimerWork(timerFloatBoost, delayBoostMillis)) {
@@ -358,7 +363,7 @@ void loop() {
         event = "5.2 Uout > Ut; Uout--";
       }
       //5.3 проверка на Uout=Ut
-      else if (outputSignal == voltageTemperature) {
+      else if (outputSignal = voltageTemperature) {
         outputSignal = voltageTemperature;
         event = "5.3 Uout = Ut";
       }
@@ -399,7 +404,7 @@ void loop() {
 int outputFloat(int tempLevel) {
   int outputSignalFloat;
 
-  if (tempLevel < tempCalibrationADC) {
+  if (tempLevel < minTempCalibr) {
     outputSignalFloat = outputMidFloatDAC;
     mode = "Calibration";
   }
@@ -413,10 +418,10 @@ int outputFloat(int tempLevel) {
     outputSignalFloat = outputMidFloatDAC;
   }
   else if (tempLevel > tempSecondPointFloatADC && tempLevel <= maxTempFloatADC) {
-    outputSignalFloat = map(tempLevel, tempSecondPointFloatADC, maxTempFloatADC, outputMidFloatDAC, outputMinFloatDAC);
+    outputSignalFloat = map(tempLevel, tempSecondPointFloatADC, maxTempFloatADC, outputMidFloatDAC, outputMinDAC);
   }
   else if (tempLevel > maxTempFloatADC) {
-    outputSignalFloat = outputMinFloatDAC;
+    outputSignalFloat = outputMinDAC;
   }
   return outputSignalFloat;
 
@@ -426,7 +431,7 @@ int outputFloat(int tempLevel) {
 
 int outputBoost(int tempLevel) {
   int outputSignalBoost;
-  if (tempLevel < tempCalibrationADC) {
+  if (tempLevel < minTempCalibr) {
     outputSignalBoost = outputMidFloatDAC;
     mode = "Calibration";
   }
@@ -434,7 +439,7 @@ int outputBoost(int tempLevel) {
     outputSignalBoost = outputMaxDAC;
   }
   else if (tempLevel > minTempBoostADC && tempLevel <= maxTempBoostADC) {
-    outputSignalBoost = map (tempLevel, minTempBoostADC, maxTempBoostADC, outputMaxDAC, outputMinBoostDAC);
+    outputSignalBoost = map (tempLevel, minTempBoostADC, maxTempBoostADC, outputMaxDAC, outputMaxBoostDAC);
   }
   else outputSignalBoost = outputFloat (tempLevel);
 
