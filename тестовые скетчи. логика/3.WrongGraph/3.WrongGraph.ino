@@ -83,13 +83,16 @@ double thresholdBoostEnding = 0.25;
 //Задайте максимальное время работы в режиме boost в минутах
 byte timeInBoost = 8 * 60;
 
+//
+//
 //Задайте время задержки между повторным включением режима boost в минутах
-byte delayBoost = 15;
+byte delayBoost = 1;
+//
+//
 
 // велечина напряжения сброса Ureset  в 10 битах
 
 int voltageReset = 575;
-
 
 /******************************************************************************************************************************************************************/
 //ВЫЧИСЛЯЕМЫЕ ЗНАЧЕНИЯ
@@ -185,10 +188,6 @@ int voltageTemperature;
 boolean isUstart = false;
 boolean isLastSignalBoost = false;
 
-// флаг старта
-
-boolean isStart = true;
-
 //переменные для хранения времени таймеров
 unsigned long timerFloatBoost;
 unsigned long timerBoost;
@@ -246,7 +245,6 @@ void setup() {
   timerComparator = millis();
   timerDisplaying = millis();
 
-
   //открываем передачу данных для мониторинга
   Serial.begin(9600);
 }
@@ -255,31 +253,46 @@ void setup() {
 
 void loop() {
 
-  //БЛОК 1. получение данных по напряжению на шунте
+  //
+  //
+  //БЛОК 1. получение данных по напряжению на шунте A4
+  //задаём значение около 20 мВ (6)
 
   if (!isTimerWork(timerVoltageShunt, 15)) {
     valueOfCurrent = getMovAverageCurrent(arrayCurrent);
     timerVoltageShunt = millis();
   }
+  //
+  //
 
-  //БЛОК 2. получение данных по температуре
+
+  //
+  //
+  //БЛОК 2. получение данных по температуре A2
   if (!isTimerWork(timerTemperature, 1000)) {
+    //задаём температуру +30 Цельсиев (496 в 10 битах)
     averageTemperature = getMovAverageTemp(arrayTemp);
     timerTemperature = millis();
   }
-
-  //БЛОК 3. получение данных по Usupport
+  //
+  //
+  
+  //
+  //
+  //БЛОК 3. получение данных по Usupport A6
   if (!isTimerWork(timerVoltageSupport, 15)) {
     voltageSupport = 2*getMovAverageSupport(arraySupport);
     timerVoltageSupport = millis();
   }
+  //
+  //
 
   //БЛОК 4. Выбор графика boost/float
   //условие калибровки (если температура ниже минус 40, то включаем режим выходного сигнала, равный среднему значению при Флоат)
   if (!isTimerWork(timerComparator, 330)) {
     
       //4.2 проверка на 15-ти мнунтный таймер
-      if (isTimerWork(timerFloatBoost, delayBoostMillis) && !isStart) {
+      if (isTimerWork(timerFloatBoost, delayBoostMillis)) {
         mode = "4.2 Float";
         voltageTemperature = outputFloat(averageTemperature);
         timerMode = "15-ти минутный таймер работает";
@@ -293,7 +306,6 @@ void loop() {
         timerMode = "15-ти минутный таймер запущен";
         isUstart = false;
         isLastSignalBoost = false;
-        isStart = false;
       }
       //4.4 проверка Ushunt <= Ustop
       else if (valueOfCurrent <= switchBoostToFloatADC) {
@@ -304,7 +316,6 @@ void loop() {
           timerMode = "15-ти минутный таймер запущен";
           isUstart = false;
           isLastSignalBoost = false;
-          isStart = false;
         }
         else {
           mode = "4.4 else Float";
@@ -345,7 +356,6 @@ void loop() {
          timerFloatBoost = millis();
          timerMode = "15-ти минутный таймер запущен";
          isLastSignalBoost = false;
-         isStart = false;
       }
       //4.9 предохранительная ветка
       else {
@@ -457,8 +467,14 @@ int getMovAverageTemp (int arrayTemp[10]) {
     arrayTemp[j] = arrayTemp[j + 1];
   }
 
+//
+//
+//
   arrayTemp[9] = analogRead(INPUT_TEMP);
 
+//
+//
+//
   int sum = 0;
   for (byte i = 0; i < 10 ; i++) {
     sum += arrayTemp[i];
@@ -555,7 +571,20 @@ void displayingDataTemp () {
   //статус таймеров
   Serial.print("Статус таймеров: ");
   Serial.println(timerMode);
+  Serial.println(" ");
 
+  //величина Напряжение соответствующее номинальному току заряда мВ Uномин
+  Serial.print("Напряжение соответств номинальн току заряда: ");
+  Serial.println(valueOfNominalCurrentOnVoltage);
+  // Переключение из Флоат в Буст
+  Serial.print("Порог переключения из Флоат в Буст: ");
+  Serial.println(switchFloatToBoost);
+  // Переключение из Буст в Флоат
+  Serial.print("Порог переключения из Буст в Флоат: ");
+  Serial.println(switchBoostToFloat);
+  
+
+  
 
   /*
     for(int i = 0 ; i < 10 ; i ++) {
