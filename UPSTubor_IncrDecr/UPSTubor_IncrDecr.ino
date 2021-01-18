@@ -271,7 +271,7 @@ void loop() {
 
   //БЛОК 3. получение данных по Usupport
   if (!isTimerWork(timerVoltageSupport, 15)) {
-    voltageSupport = 2*getMovAverageSupport(arraySupport);
+    voltageSupport = getMovAverageSupport(arraySupport);
     timerVoltageSupport = millis();
   }
 

@@ -259,7 +259,8 @@ void loop() {
   //задаём значение около 20 мВ (6)
 
   if (!isTimerWork(timerVoltageShunt, 15)) {
-    valueOfCurrent = getMovAverageCurrent(arrayCurrent);
+    valueOfCurrent = 6;    
+//    valueOfCurrent = getMovAverageCurrent(arrayCurrent);
     timerVoltageShunt = millis();
   }
   //
@@ -271,7 +272,8 @@ void loop() {
   //БЛОК 2. получение данных по температуре A2
   if (!isTimerWork(timerTemperature, 1000)) {
     //задаём температуру +30 Цельсиев (496 в 10 битах)
-    averageTemperature = getMovAverageTemp(arrayTemp);
+    averageTemperature = 400;
+//    averageTemperature = getMovAverageTemp(arrayTemp);
     timerTemperature = millis();
   }
   //
