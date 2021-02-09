@@ -118,8 +118,10 @@ int switchFloatToBoostADC = switchFloatToBoost/accuracyInput;
 //Вычисляем пороговое значение Ustop, при котором происходит переключения с функции Boost на Float (окончание ускоренного заряда) Ustop
 
 double switchBoostToFloat = valueOfNominalCurrentOnVoltage * thresholdBoostEnding;
-//пересчёт в 10 бит
-int switchBoostToFloatADC = switchBoostToFloat/accuracyInput;
+
+//получение порога переключения, пересчитанного в 10 бит с усилением в 8 раз
+int switchBoostToFloat8ADC = 8 * switchBoostToFloat/accuracyInput;
+
 
 //режим работы
 String mode;
@@ -319,7 +321,7 @@ void loop() {
         isStart = false;
       }
       //4.4 проверка Ushunt <= Ustop
-      else if (value8Shunt <= switchBoostToFloatADC * 8) {
+      else if (value8Shunt <= switchBoostToFloat8ADC) {
         if (isLastSignalBoost) {
           mode = "4.4 Float";
           voltageTemperature = outputFloat(averageTemperature);
@@ -593,8 +595,7 @@ void displayingDataTemp () {
   //статус таймеров
   Serial.print("Статус таймеров: ");
   Serial.println(timerMode);
-
-
+  
   /*
     for(int i = 0 ; i < 10 ; i ++) {
     Serial.print("элемент массива: ");
