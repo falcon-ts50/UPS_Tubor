@@ -2,6 +2,7 @@
 #define OUTPUT_SIGNAL     A0
 #define INPUT_TEMP        A2
 #define INPUT_SHUNT       A4
+#define INPUT_8SHUNT      A5
 #define INPUT_SUPPORT     A6
 
 //Характеристика датчика температуры ТМР-36
@@ -172,6 +173,7 @@ unsigned long delayBoostMillis = delayBoost * 60 * 1000;
 //Созадём массив на 10 точек для скользящей средней по температуре без инициализации
 int arrayTemp[10];
 int arrayCurrent[10];
+int array8Shunt[10];
 int arraySupport[20];
 
 //Создаём переменные для выходного сигнала и средней температуры для их использования в функции отображения на экране.
@@ -179,6 +181,7 @@ int outputSignal;
 int averageTemperature;
 int shuntCurrent;
 int valueOfCurrent;
+int value8Shunt;
 int voltageSupport;
 int voltageTemperature;
 
@@ -193,6 +196,7 @@ boolean isStart = true;
 unsigned long timerFloatBoost;
 unsigned long timerBoost;
 unsigned long timerVoltageShunt;
+unsigned long timer8Shunt;
 unsigned long timerTemperature;
 unsigned long timerVoltageSupport;
 unsigned long timerComparator;
@@ -206,6 +210,7 @@ void setup() {
   // put your setup code here, to run once:
   pinMode(INPUT_TEMP, INPUT);
   pinMode(INPUT_SHUNT, INPUT);
+  pinMode(INPUT_8SHUNT, INPUT);
   pinMode(INPUT_SUPPORT, INPUT);
   //Устанавливаем разрешение для работы с входным сигналом
   analogReference(AR_INTERNAL1V65);
@@ -226,6 +231,14 @@ void setup() {
     arrayCurrent[j] = analogRead(INPUT_SHUNT);
     delay(10);
   }
+
+  // инициализация массива усиленного в 8 раз Шунта (ниже блок 1.1) для скользящей средней
+  for (int l = 0; l < 10; l++){
+    array8Shunt[l] = analogRead(INPUT_8SHUNT);
+    delay(10);
+  }
+
+  
   // инициализация массива Суппорта (ниже блок 3) для скользящей средней
 
   for (int k = 0; k < 20; k++)
@@ -241,6 +254,7 @@ void setup() {
   timerFloatBoost = millis();
   timerBoost = millis();
   timerVoltageShunt = millis();
+  timer8Shunt = millis();
   timerTemperature = millis();
   timerVoltageSupport = millis();
   timerComparator = millis();
@@ -263,6 +277,14 @@ void loop() {
     timerVoltageShunt = millis();
   }
 
+  //БЛОК 1.1 получение данных с шунта, усиленные в 8 раз
+
+  if(!isTimerWork(timer8Shunt, 15)) {
+    value8Shunt = getMovAverage8Shunt(array8Shunt);
+    timer8Shunt = millis();
+  }
+
+  
   //БЛОК 2. получение данных по температуре
   if (!isTimerWork(timerTemperature, 1000)) {
     averageTemperature = getMovAverageTemp(arrayTemp);
@@ -297,7 +319,7 @@ void loop() {
         isStart = false;
       }
       //4.4 проверка Ushunt <= Ustop
-      else if (valueOfCurrent <= switchBoostToFloatADC) {
+      else if (value8Shunt <= switchBoostToFloatADC * 8) {
         if (isLastSignalBoost) {
           mode = "4.4 Float";
           voltageTemperature = outputFloat(averageTemperature);
@@ -485,6 +507,23 @@ int getMovAverageCurrent (int arrayCur[10]) {
   return sum / 10;
 }
 
+//вычисление скользящей средней на 10 точек для данных по току Шунта
+
+int getMovAverage8Shunt (int arrayCur[10]) {
+  for (byte j = 0; j < 9; j++) {
+    arrayCur[j] = arrayCur[j + 1];
+  }
+
+  arrayCur[9] = analogRead(INPUT_8SHUNT);
+
+  int sum = 0;
+  for (byte i = 0; i < 10 ; i++) {
+    sum += arrayCur[i];
+  }
+
+  return sum / 10;
+}
+
 // вычисление сокльзящей средней на 20 точек для Usupport
 int getMovAverageSupport(int arraySup[20]) {
   for (byte j = 0; j < 19; j++) {
@@ -510,8 +549,6 @@ boolean isTimerWork(unsigned long timeWork, unsigned long timeLimit) {
   }
   else return false;
 }
-
-
 
 //функция показа данных в мониторе порта
 
