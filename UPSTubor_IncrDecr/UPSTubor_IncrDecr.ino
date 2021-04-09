@@ -70,10 +70,13 @@ int numberBattery = 4;
 int coeffAnalogueAmplifier = 25;
 
 //Задайте ток заряда {S}
-double chargingCurrent = 2.8;
+double chargingCurrent = 2.7;
 
 //Задайте предельный ток заряда {P}
-double maxChargCurrent = 3.5;
+double maxChargCurrent = 5.0;
+
+//Задайте верхний порог ограничения тока {U reduce}
+double upThresholdCurrent = 3.7;
 
 //Задайте порог применения ускоренного заряда {B}
 double thresholdForBoost = 0.9;
@@ -108,6 +111,11 @@ int voltageOfChargeADC = voltageOfCharge/accuracyInput;
 int limitVoltageOfCharge = valueOfNominalCurrentOnVoltage * maxChargCurrent;
 //Umax в 10-битном исчислении
 int limitVoltageChrgDAC = limitVoltageOfCharge/accuracyInput;
+
+//Напряжение, соответствующее верхнему порогу ограничения заряда
+int upThrCurrentVoltage = valueOfNominalCurrentOnVoltage * upThresholdCurrent;
+//U reduce в 10-битах
+int upThrCurrDAC = upThrCurrentVoltage/accuracyInput;
 
 //Вычисляем значение Ustart при котором происходит начало ускоренного заряда (переключение с Float на Boost) Ustart
 
@@ -386,8 +394,8 @@ void loop() {
         outputSignal = voltageReset;
         event = "5.1 Ushunt > Umax; Uout = Ureset";
       }
-      //5.2 проверка на Uout>Ut
-      else if (outputSignal > voltageTemperature) {
+      //5.2 проверка на Uout>Ut либо Ushunt > Ureset
+      else if (outputSignal > voltageTemperature || valueOfCurrent > upThrCurrDAC) {
         outputSignal--;
         event = "5.2 Uout > Ut; Uout--";
       }
@@ -509,7 +517,7 @@ int getMovAverageCurrent (int arrayCur[10]) {
   return sum / 10;
 }
 
-//вычисление скользящей средней на 10 точек для данных по току Шунта
+//вычисление скользящей средней на 10 точек для данных по току усиленного Шунта
 
 int getMovAverage8Shunt (int arrayCur[10]) {
   for (byte j = 0; j < 9; j++) {
