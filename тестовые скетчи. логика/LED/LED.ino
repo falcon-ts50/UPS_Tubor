@@ -422,6 +422,8 @@ void loop() {
         event = "5.7 Uout = Usupport";
       }
 
+ //     ВНИМАНИЕ! ТУТ ВВЕДЕНО ТЕСТОВОЕ ЗНАЧЕНИЕ
+outputSignal = outputMidFloatDAC;
       
 //    Проверка на уровень сигнала, чтобы понимать, что можно включить светодиод
       if(outputSignal == outputMidFloatDAC){
